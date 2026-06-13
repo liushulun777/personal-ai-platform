@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: platform
+data:
+  # 数据库配置
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: platform
+
+  # Redis配置
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+
+  # Nacos配置
+  NACOS_SERVER_ADDR: nacos:8848
+
+  # ElasticSearch配置
+  ELASTICSEARCH_URIS: http://elasticsearch:9200
+
+  # Kafka配置
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+  # MinIO配置
+  MINIO_ENDPOINT: http://minio:9000

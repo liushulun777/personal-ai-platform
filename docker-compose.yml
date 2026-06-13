@@ -1,0 +1,310 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # 基础设施
+  # ============================================================
+
+  # PostgreSQL 17
+  postgres:
+    image: postgres:17.9-alpine3.22
+    container_name: platform-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: platform
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Redis 8
+  redis:
+    image: redis:8-alpine
+    container_name: platform-redis
+    ports:
+      - "16379:6379"
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # MinIO
+  minio:
+    image: minio/minio:RELEASE.250907
+    container_name: platform-minio
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Nacos 2.x (standalone mode)
+  nacos:
+    image: nacos/nacos-server:v2.4.3
+    container_name: platform-nacos
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: ""
+      JVM_XMS: 256m
+      JVM_XMX: 256m
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # ElasticSearch 8.x
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    container_name: platform-elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Kafka + Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: platform-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: platform-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # ============================================================
+  # 微服务
+  # ============================================================
+
+  # Gateway Service
+  gateway-service:
+    build:
+      context: ./services/gateway-service
+      dockerfile: Dockerfile
+    container_name: platform-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+    depends_on:
+      - nacos
+      - redis
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: platform-auth
+    ports:
+      - "1081:1081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # System Service
+  system-service:
+    build:
+      context: ./services/system-service
+      dockerfile: Dockerfile
+    container_name: platform-system
+    ports:
+      - "1082:1082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Blog Service
+  blog-service:
+    build:
+      context: ./services/blog-service
+      dockerfile: Dockerfile
+    container_name: platform-blog
+    ports:
+      - "1083:1083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+      - kafka
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # File Service
+  file-service:
+    build:
+      context: ./services/file-service
+      dockerfile: Dockerfile
+    container_name: platform-file
+    ports:
+      - "1084:1084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+      - minio
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Search Service
+  search-service:
+    build:
+      context: ./services/search-service
+      dockerfile: Dockerfile
+    container_name: platform-search
+    ports:
+      - "1085:1085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+      - elasticsearch
+      - kafka
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: platform-ai
+    ports:
+      - "1086:1086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # ============================================================
+  # 前端
+  # ============================================================
+
+  # Vue3 前端
+  platform-web:
+    build:
+      context: ./frontend/platform-web
+      dockerfile: Dockerfile
+    container_name: platform-web
+    ports:
+      - "80:80"
+    depends_on:
+      - gateway-service
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+networks:
+  platform-network:
+    driver: bridge

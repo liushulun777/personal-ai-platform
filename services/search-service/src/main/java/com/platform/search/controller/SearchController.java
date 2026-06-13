@@ -1,0 +1,45 @@
+package com.platform.search.controller;
+
+import com.platform.common.core.result.PageResult;
+import com.platform.common.core.result.Result;
+import com.platform.search.domain.dto.ArticleSearchDTO;
+import com.platform.search.domain.vo.ArticleSearchVO;
+import com.platform.search.service.SearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * 搜索控制器
+ */
+@Tag(name = "搜索管理", description = "文章搜索相关接口")
+@RestController
+@RequestMapping("/api/search")
+@RequiredArgsConstructor
+public class SearchController {
+
+    private final SearchService searchService;
+
+    /**
+     * 搜索文章
+     */
+    @Operation(summary = "搜索文章", description = "根据关键词、分类、标签等条件搜索文章")
+    @PostMapping("/articles")
+    public Result<PageResult<ArticleSearchVO>> searchArticles(@RequestBody ArticleSearchDTO searchDTO) {
+        return Result.success(searchService.searchArticles(searchDTO));
+    }
+
+    /**
+     * 获取搜索建议
+     */
+    @Operation(summary = "获取搜索建议", description = "根据关键词获取搜索建议")
+    @GetMapping("/suggestions")
+    public Result<List<String>> getSuggestions(
+            @Parameter(description = "关键词", required = true) @RequestParam String keyword) {
+        return Result.success(searchService.getSuggestions(keyword));
+    }
+}

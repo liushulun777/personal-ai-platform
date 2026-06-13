@@ -1,0 +1,36 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+
+# Gradle
+.gradle/
+build/
+
+# Environment
+.env
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules/
+dist/
+
+# Docker
+.docker/
+
+# K8s secrets
+*k8s*secret*.yaml

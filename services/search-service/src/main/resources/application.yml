@@ -1,0 +1,57 @@
+server:
+  port: 1084
+
+spring:
+  application:
+    name: search-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://172.18.0.34:5432/platform
+    username: postgres
+    password: postgres
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+  data:
+    redis:
+      host: 172.18.0.34
+      port: 6379
+      database: 0
+    elasticsearch:
+      uris: http://172.18.0.34:9200
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 172.18.0.34:8848
+        fail-fast: false
+  kafka:
+    bootstrap-servers: 172.18.0.34:9092
+    consumer:
+      group-id: search-service
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.platform.blog.event"
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  is-read-header: true
+  is-read-cookie: false
+
+logging:
+  level:
+    com.platform.search: debug
+    org.springframework.data.elasticsearch: debug

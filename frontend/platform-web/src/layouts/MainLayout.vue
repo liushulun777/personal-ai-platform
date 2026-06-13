@@ -41,6 +41,15 @@ const menuOptions: MenuOption[] = [
       { label: '分类管理', key: 'CategoryList' },
       { label: '标签管理', key: 'TagList' }
     ]
+  },
+  {
+    label: 'AI 助手',
+    key: 'AI',
+    icon: renderIcon('A'),
+    children: [
+      { label: 'AI 对话', key: 'AiChat' },
+      { label: 'Prompt 模板', key: 'PromptList' }
+    ]
   }
 ]
 

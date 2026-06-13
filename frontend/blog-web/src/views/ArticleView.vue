@@ -9,6 +9,7 @@ import { getLikeStatus, toggleLike, cancelLike } from '@/api/like'
 import { getFavoriteStatus, toggleFavorite, cancelFavorite } from '@/api/favorite'
 import { getCommentsByArticleId, createComment, deleteComment } from '@/api/comment'
 import type { CommentVO, CommentCreateParams } from '@/api/comment'
+import AiArticleQA from '@/components/ai/AiArticleQA.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -249,6 +250,9 @@ onMounted(() => {
             {{ article.sourceUrl }}
           </a>
         </div>
+
+        <!-- AI QA -->
+        <AiArticleQA :article-id="articleId" />
 
         <!-- Comments -->
         <div class="mt-10 pt-6" style="border-top: 1px solid var(--border-color)">

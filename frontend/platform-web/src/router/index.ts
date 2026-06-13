@@ -81,6 +81,25 @@ const routes: RouteRecordRaw[] = [
             meta: { title: '标签管理', requiresAuth: true }
           }
         ]
+      },
+      {
+        path: 'ai',
+        name: 'AI',
+        redirect: '/ai/chat',
+        children: [
+          {
+            path: 'chat',
+            name: 'AiChat',
+            component: () => import('@/modules/ai/views/AiChatView.vue'),
+            meta: { title: 'AI 对话', requiresAuth: true }
+          },
+          {
+            path: 'prompts',
+            name: 'PromptList',
+            component: () => import('@/modules/ai/views/PromptListView.vue'),
+            meta: { title: 'Prompt 模板', requiresAuth: true }
+          }
+        ]
       }
     ]
   },

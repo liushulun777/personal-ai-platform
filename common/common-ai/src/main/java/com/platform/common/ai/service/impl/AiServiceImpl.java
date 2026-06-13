@@ -9,6 +9,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,17 +37,7 @@ public class AiServiceImpl implements AiService {
     @Override
     public String chat(String prompt, String context, String modelName) {
         try {
-            List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
-
-            // 添加系统消息
-            if (context != null && !context.isEmpty()) {
-                messages.add(new SystemMessage("你是一个 helpful AI 助手。以下是对话历史：\n" + context));
-            } else {
-                messages.add(new SystemMessage("你是一个 helpful AI 助手。"));
-            }
-
-            // 添加用户消息
-            messages.add(new UserMessage(prompt));
+            List<org.springframework.ai.chat.messages.Message> messages = buildMessages(prompt, context);
 
             // 获取对应的 ChatModel
             ChatModel chatModel = chatModelFactory.getChatModel(modelName);
@@ -59,6 +50,47 @@ public class AiServiceImpl implements AiService {
             log.error("AI调用失败, model: {}", modelName, e);
             throw new RuntimeException("AI调用失败: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public Flux<String> streamChat(String prompt, String context, String modelName) {
+        try {
+            List<org.springframework.ai.chat.messages.Message> messages = buildMessages(prompt, context);
+
+            // 获取对应的 ChatModel
+            ChatModel chatModel = chatModelFactory.getChatModel(modelName);
+
+            // 流式调用AI模型
+            Prompt chatPrompt = new Prompt(messages);
+            return chatModel.stream(chatPrompt)
+                    .map(response -> {
+                        var result = response.getResult();
+                        if (result != null && result.getOutput() != null) {
+                            String text = result.getOutput().getText();
+                            return text != null ? text : "";
+                        }
+                        return "";
+                    })
+                    .filter(text -> !text.isEmpty());
+        } catch (Exception e) {
+            log.error("AI流式调用失败, model: {}", modelName, e);
+            return Flux.error(new RuntimeException("AI流式调用失败: " + e.getMessage(), e));
+        }
+    }
+
+    private List<org.springframework.ai.chat.messages.Message> buildMessages(String prompt, String context) {
+        List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
+
+        // 添加系统消息
+        if (context != null && !context.isEmpty()) {
+            messages.add(new SystemMessage("你是一个 helpful AI 助手。以下是对话历史：\n" + context));
+        } else {
+            messages.add(new SystemMessage("你是一个 helpful AI 助手。"));
+        }
+
+        // 添加用户消息
+        messages.add(new UserMessage(prompt));
+        return messages;
     }
 
     @Override

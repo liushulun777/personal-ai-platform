@@ -13,27 +13,41 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 /**
  * 对话控制器
  */
 @Tag(name = "AI对话管理", description = "AI对话相关接口")
 @RestController
-@RequestMapping("/api/ai/conversations")
+@RequestMapping("/conversations")
 @RequiredArgsConstructor
 public class ConversationController {
 
     private final ConversationService conversationService;
 
     /**
-     * 聊天
+     * 聊天（同步）
      */
     @Operation(summary = "聊天", description = "发送消息并获取AI回复")
     @PostMapping("/chat")
     public Result<ChatVO> chat(@Valid @RequestBody ChatDTO chatDTO) {
         Long userId = SecurityUtils.getCurrentUserId();
         return Result.success(conversationService.chat(userId, chatDTO));
+    }
+
+    /**
+     * 流式聊天（SSE）
+     * 第一个事件为 conversationId，后续为内容片段
+     */
+    @Operation(summary = "流式聊天", description = "发送消息并获取AI流式回复")
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamChat(@Valid @RequestBody ChatDTO chatDTO) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        return conversationService.streamChat(userId, chatDTO);
     }
 
     /**

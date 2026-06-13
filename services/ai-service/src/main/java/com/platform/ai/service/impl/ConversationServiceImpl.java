@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -102,6 +103,81 @@ public class ConversationServiceImpl implements ConversationService {
         chatVO.setConversationId(conversation.getId());
         chatVO.setReply(reply);
         return chatVO;
+    }
+
+    @Override
+    public Flux<String> streamChat(Long userId, ChatDTO chatDTO) {
+        // 准备对话（同步部分）
+        Conversation conversation = prepareConversation(userId, chatDTO);
+
+        // 保存用户消息
+        saveMessage(conversation.getId(), "user", chatDTO.getMessage());
+
+        // 获取历史消息作为上下文
+        String context = buildContext(conversation.getId());
+
+        // 获取模型名称
+        String modelName = chatDTO.getModel() != null ? chatDTO.getModel() : conversation.getModel();
+
+        // 第一个事件返回 conversationId
+        String conversationIdEvent = "conversationId:" + conversation.getId();
+
+        // 流式调用AI服务，完成后保存回复
+        StringBuilder fullReply = new StringBuilder();
+        Flux<String> stream = aiService.streamChat(chatDTO.getMessage(), context, modelName)
+                .doOnNext(fullReply::append)
+                .doOnComplete(() -> {
+                    // 流式完成后保存AI回复
+                    saveMessage(conversation.getId(), "assistant", fullReply.toString());
+                })
+                .doOnError(e -> log.error("流式聊天失败", e));
+
+        // 在流前面加上 conversationId 事件
+        return Flux.concat(Flux.just(conversationIdEvent), stream);
+    }
+
+    private Conversation prepareConversation(Long userId, ChatDTO chatDTO) {
+        if (chatDTO.getConversationId() != null) {
+            Conversation conversation = conversationMapper.selectById(chatDTO.getConversationId());
+            if (conversation == null) {
+                throw new BusinessException(ResultCode.DATA_NOT_FOUND, "对话不存在");
+            }
+            if (!conversation.getUserId().equals(userId)) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "无权访问此对话");
+            }
+            return conversation;
+        } else {
+            Conversation conversation = new Conversation();
+            conversation.setUserId(userId);
+            conversation.setTitle(generateTitle(chatDTO.getMessage()));
+            conversation.setModel(chatDTO.getModel() != null ? chatDTO.getModel() : "mimo");
+            conversation.setStatus(1);
+            conversationMapper.insert(conversation);
+            return conversation;
+        }
+    }
+
+    private void saveMessage(Long conversationId, String role, String content) {
+        Message message = new Message();
+        message.setConversationId(conversationId);
+        message.setRole(role);
+        message.setContent(content);
+        message.setCreateTime(LocalDateTime.now());
+        messageMapper.insert(message);
+    }
+
+    private String buildContext(Long conversationId) {
+        List<Message> historyMessages = messageMapper.selectList(
+                new LambdaQueryWrapper<Message>()
+                        .eq(Message::getConversationId, conversationId)
+                        .orderByAsc(Message::getCreateTime)
+        );
+
+        StringBuilder context = new StringBuilder();
+        for (Message msg : historyMessages) {
+            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+        }
+        return context.toString();
     }
 
     @Override

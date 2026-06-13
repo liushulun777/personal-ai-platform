@@ -5,6 +5,7 @@ import com.platform.ai.domain.vo.ChatVO;
 import com.platform.ai.domain.vo.ConversationListVO;
 import com.platform.ai.domain.vo.ConversationVO;
 import com.platform.common.core.result.PageResult;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -21,6 +22,15 @@ public interface ConversationService {
      * @return 聊天响应
      */
     ChatVO chat(Long userId, ChatDTO chatDTO);
+
+    /**
+     * 流式聊天
+     *
+     * @param userId  用户ID
+     * @param chatDTO 聊天请求
+     * @return 流式回复内容
+     */
+    Flux<String> streamChat(Long userId, ChatDTO chatDTO);
 
     /**
      * 获取对话列表

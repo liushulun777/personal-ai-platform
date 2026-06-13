@@ -1,5 +1,7 @@
 package com.platform.common.ai.service;
 
+import reactor.core.publisher.Flux;
+
 import java.util.List;
 
 /**
@@ -34,6 +36,16 @@ public interface AiService {
      * @return 回复内容
      */
     String chat(String prompt, String context, String modelName);
+
+    /**
+     * 流式聊天
+     *
+     * @param prompt    提示词
+     * @param context   上下文
+     * @param modelName 模型名称
+     * @return 流式回复内容
+     */
+    Flux<String> streamChat(String prompt, String context, String modelName);
 
     /**
      * 生成摘要

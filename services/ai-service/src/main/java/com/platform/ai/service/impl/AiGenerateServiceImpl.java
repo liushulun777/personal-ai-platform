@@ -1,5 +1,6 @@
 package com.platform.ai.service.impl;
 
+import com.platform.ai.domain.vo.ArticleAskVO;
 import com.platform.ai.service.AiGenerateService;
 import com.platform.common.ai.service.AiService;
 import com.platform.common.core.exception.BusinessException;
@@ -69,6 +70,24 @@ public class AiGenerateServiceImpl implements AiGenerateService {
         } catch (Exception e) {
             log.error("生成标题失败", e);
             throw new BusinessException(ResultCode.FAIL, "生成标题失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public ArticleAskVO askArticle(String articleContent, String question) {
+        try {
+            String systemPrompt = String.format(
+                    "你是一个文章助手。请基于以下文章内容回答用户的问题。如果问题与文章内容无关，请礼貌地告知用户只能回答与文章相关的问题。\n\n文章内容：\n%s",
+                    articleContent
+            );
+            String answer = aiService.chat(question, systemPrompt);
+            return ArticleAskVO.builder()
+                    .answer(answer)
+                    .tokenCount(0)
+                    .build();
+        } catch (Exception e) {
+            log.error("文章问答失败", e);
+            throw new BusinessException(ResultCode.FAIL, "问答失败: " + e.getMessage());
         }
     }
 }

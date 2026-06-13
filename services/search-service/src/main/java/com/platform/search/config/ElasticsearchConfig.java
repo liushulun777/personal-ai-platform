@@ -17,7 +17,7 @@ import org.springframework.data.elasticsearch.repository.config.EnableElasticsea
 @EnableElasticsearchRepositories(basePackages = "com.platform.search.repository")
 public class ElasticsearchConfig {
 
-    @Value("${spring.elasticsearch.uris}")
+    @Value("${spring.data.elasticsearch.uris}")
     private String elasticsearchUris;
 
     @Bean

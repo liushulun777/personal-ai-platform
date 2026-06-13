@@ -1,5 +1,7 @@
 package com.platform.ai.service;
 
+import com.platform.ai.domain.vo.ArticleAskVO;
+
 import java.util.List;
 
 /**
@@ -35,4 +37,13 @@ public interface AiGenerateService {
      * @return 标题列表
      */
     List<String> generateTitles(String content, Integer count);
+
+    /**
+     * 文章问答
+     *
+     * @param articleContent 文章内容
+     * @param question       用户问题
+     * @return 回答
+     */
+    ArticleAskVO askArticle(String articleContent, String question);
 }

@@ -1,8 +1,10 @@
 package com.platform.ai.controller;
 
+import com.platform.ai.domain.dto.ArticleAskDTO;
 import com.platform.ai.domain.dto.SummaryDTO;
 import com.platform.ai.domain.dto.TagGenerateDTO;
 import com.platform.ai.domain.dto.TitleGenerateDTO;
+import com.platform.ai.domain.vo.ArticleAskVO;
 import com.platform.ai.service.AiGenerateService;
 import com.platform.common.core.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +20,7 @@ import java.util.List;
  */
 @Tag(name = "AI生成管理", description = "AI生成摘要、标签、标题接口")
 @RestController
-@RequestMapping("/api/ai/generate")
+@RequestMapping("/generate")
 @RequiredArgsConstructor
 public class AiGenerateController {
 
@@ -55,6 +57,20 @@ public class AiGenerateController {
         return Result.success(aiGenerateService.generateTitles(
                 titleGenerateDTO.getContent(),
                 titleGenerateDTO.getCount()
+        ));
+    }
+
+    /**
+     * 文章问答
+     */
+    @Operation(summary = "文章问答", description = "基于文章内容回答用户问题")
+    @PostMapping("/ask")
+    public Result<ArticleAskVO> askArticle(@Valid @RequestBody ArticleAskDTO articleAskDTO) {
+        // TODO: 从 blog-service 获取文章内容
+        // 临时使用 question 作为内容
+        return Result.success(aiGenerateService.askArticle(
+                articleAskDTO.getQuestion(),
+                articleAskDTO.getQuestion()
         ));
     }
 }

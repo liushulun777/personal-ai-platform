@@ -12,10 +12,14 @@ import {
   NSpace,
   NSpin,
   NImage,
+  NDrawer,
+  NDrawerContent,
   useMessage
 } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
 import FileUpload from '@/components/common/FileUpload.vue'
+import AiGenerateButton from '@/components/ai/AiGenerateButton.vue'
+import AiChatPanel from '@/components/ai/AiChatPanel.vue'
 import { MdEditor } from 'md-editor-v3'
 import type { ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
@@ -31,6 +35,7 @@ import { getAllCategories } from '@/api/category'
 import { getAllTags } from '@/api/tag'
 import type { CategoryVO } from '@/api/category'
 import type { TagVO } from '@/api/tag'
+import { generateSummary, generateTags, generateTitles } from '@/api/ai'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +43,45 @@ const message = useMessage()
 const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
 const saving = ref(false)
+const showChatDrawer = ref(false)
+
+// AI 生成函数
+function handleGenerateSummary() {
+  if (!formData.value.content?.trim()) {
+    message.warning('请先输入文章内容')
+    return Promise.reject(new Error('内容为空'))
+  }
+  return generateSummary(formData.value.content, 200).then(res => [(res as any).data?.data])
+}
+
+function handleGenerateTags() {
+  if (!formData.value.title?.trim() || !formData.value.content?.trim()) {
+    message.warning('请先输入标题和内容')
+    return Promise.reject(new Error('标题或内容为空'))
+  }
+  return generateTags(formData.value.title, formData.value.content, 5).then(res => (res as any).data?.data)
+}
+
+function handleGenerateTitles() {
+  if (!formData.value.content?.trim()) {
+    message.warning('请先输入文章内容')
+    return Promise.reject(new Error('内容为空'))
+  }
+  return generateTitles(formData.value.content, 3).then(res => (res as any).data?.data)
+}
+
+// 添加 AI 推荐的标签
+function handleAddAiTag(tagName: string) {
+  // 查找现有标签
+  const existing = tagOptions.value.find(t => t.label === tagName)
+  if (existing) {
+    if (!formData.value.tagIds?.includes(existing.value)) {
+      formData.value.tagIds = [...(formData.value.tagIds || []), existing.value]
+    }
+  } else {
+    message.info(`标签 "${tagName}" 不存在，请先创建`)
+  }
+}
 
 const isCreate = computed(() => route.params.id === 'new')
 const articleId = computed(() => (isCreate.value ? null : route.params.id as string))
@@ -227,6 +271,9 @@ onMounted(async () => {
         >
           预览
         </NButton>
+        <NButton size="small" quaternary @click="showChatDrawer = true">
+          AI 助手
+        </NButton>
         <NButton size="small" :loading="saving" @click="handleSave">保存草稿</NButton>
         <NButton type="primary" size="small" :loading="saving" @click="handlePublish">
           {{ isCreate ? '保存并发布' : '发布' }}
@@ -245,12 +292,20 @@ onMounted(async () => {
         <NCard>
           <template #header><span class="text-sm font-medium" style="color: var(--text-secondary)">基本信息</span></template>
           <NFormItem label="标题" path="title">
-            <NInput
-              v-model:value="formData.title"
-              placeholder="请输入文章标题"
-              maxlength="200"
-              show-count
-            />
+            <div class="flex gap-2 w-full">
+              <NInput
+                v-model:value="formData.title"
+                placeholder="请输入文章标题"
+                maxlength="200"
+                show-count
+              />
+              <AiGenerateButton
+                label="AI 生成标题"
+                :disabled="!formData.content.trim()"
+                :generate-fn="handleGenerateTitles"
+                @use="(v: string) => formData.title = v"
+              />
+            </div>
           </NFormItem>
 
           <NFormItem label="分类" path="categoryId">
@@ -263,24 +318,40 @@ onMounted(async () => {
           </NFormItem>
 
           <NFormItem label="标签" path="tagIds">
-            <NSelect
-              v-model:value="formData.tagIds"
-              :options="tagOptions"
-              placeholder="请选择标签"
-              multiple
-              clearable
-            />
+            <div class="flex gap-2 w-full">
+              <NSelect
+                v-model:value="formData.tagIds"
+                :options="tagOptions"
+                placeholder="请选择标签"
+                multiple
+                clearable
+              />
+              <AiGenerateButton
+                label="AI 推荐标签"
+                :disabled="!formData.title.trim() || !formData.content.trim()"
+                :generate-fn="handleGenerateTags"
+                @use="handleAddAiTag"
+              />
+            </div>
           </NFormItem>
 
           <NFormItem label="摘要" path="summary">
-            <NInput
-              v-model:value="formData.summary"
-              type="textarea"
-              placeholder="请输入文章摘要"
-              maxlength="500"
-              show-count
-              :rows="3"
-            />
+            <div class="flex gap-2 w-full">
+              <NInput
+                v-model:value="formData.summary"
+                type="textarea"
+                placeholder="请输入文章摘要"
+                maxlength="500"
+                show-count
+                :rows="3"
+              />
+              <AiGenerateButton
+                label="AI 生成摘要"
+                :disabled="!formData.content.trim()"
+                :generate-fn="handleGenerateSummary"
+                @use="(v: string) => formData.summary = v"
+              />
+            </div>
           </NFormItem>
 
           <NFormItem label="封面" path="cover">
@@ -337,5 +408,16 @@ onMounted(async () => {
         </NCard>
       </NForm>
     </NSpin>
+
+    <!-- AI 助手抽屉 -->
+    <NDrawer
+      v-model:show="showChatDrawer"
+      :width="400"
+      placement="right"
+    >
+      <NDrawerContent title="AI 助手" :native-scrollbar="false">
+        <AiChatPanel />
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>

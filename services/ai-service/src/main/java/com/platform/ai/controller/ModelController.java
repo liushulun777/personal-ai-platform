@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  */
 @Tag(name = "模型管理", description = "AI模型相关接口")
 @RestController
-@RequestMapping("/api/ai/models")
+@RequestMapping("/models")
 @RequiredArgsConstructor
 public class ModelController {
 

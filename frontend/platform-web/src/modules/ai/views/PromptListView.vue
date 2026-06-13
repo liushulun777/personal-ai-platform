@@ -1,0 +1,226 @@
+<template>
+  <div>
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-medium">Prompt 模板管理</h2>
+      <NButton type="primary" size="small" @click="showCreateModal = true">
+        新建模板
+      </NButton>
+    </div>
+
+    <NCard>
+      <NDataTable
+        :columns="columns"
+        :data="prompts"
+        :loading="loading"
+        :pagination="pagination"
+        :row-key="(row: PromptVO) => row.id"
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
+      />
+    </NCard>
+
+    <!-- 创建模板弹窗 -->
+    <NModal
+      v-model:show="showCreateModal"
+      preset="dialog"
+      title="新建 Prompt 模板"
+      positive-text="创建"
+      negative-text="取消"
+      :loading="creating"
+      @positive-click="handleCreate"
+    >
+      <NForm ref="formRef" :model="formData" label-placement="left" label-width="80">
+        <NFormItem label="名称" path="name" :rule="{ required: true, message: '请输入模板名称' }">
+          <NInput v-model:value="formData.name" placeholder="请输入模板名称" />
+        </NFormItem>
+        <NFormItem label="分类" path="category">
+          <NSelect
+            v-model:value="formData.category"
+            :options="categoryOptions"
+            placeholder="请选择分类"
+            clearable
+          />
+        </NFormItem>
+        <NFormItem label="描述" path="description">
+          <NInput v-model:value="formData.description" placeholder="请输入模板描述" />
+        </NFormItem>
+        <NFormItem label="Prompt" path="promptText" :rule="{ required: true, message: '请输入 Prompt 内容' }">
+          <NInput
+            v-model:value="formData.promptText"
+            type="textarea"
+            placeholder="请输入 Prompt 内容"
+            :rows="6"
+          />
+        </NFormItem>
+      </NForm>
+    </NModal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, h, onMounted } from 'vue'
+import {
+  NCard,
+  NButton,
+  NDataTable,
+  NModal,
+  NForm,
+  NFormItem,
+  NInput,
+  NSelect,
+  NTag,
+  NSpace,
+  useMessage,
+  useDialog,
+} from 'naive-ui'
+import type { DataTableColumns, FormInst, PaginationProps } from 'naive-ui'
+import { getPrompts, createPrompt, deletePrompt } from '@/api/ai'
+import type { PromptVO, PromptCreateDTO } from '@/types/ai'
+
+const message = useMessage()
+const dialog = useDialog()
+const formRef = ref<FormInst | null>(null)
+const loading = ref(false)
+const creating = ref(false)
+const showCreateModal = ref(false)
+const prompts = ref<PromptVO[]>([])
+
+const formData = reactive<PromptCreateDTO>({
+  name: '',
+  description: '',
+  promptText: '',
+  category: undefined,
+})
+
+const categoryOptions = [
+  { label: '写作', value: 'writing' },
+  { label: '翻译', value: 'translation' },
+  { label: '总结', value: 'summary' },
+  { label: '代码', value: 'code' },
+  { label: '其他', value: 'other' },
+]
+
+const pagination = reactive<PaginationProps>({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50],
+})
+
+const columns: DataTableColumns<PromptVO> = [
+  { title: '名称', key: 'name', width: 150 },
+  {
+    title: '分类',
+    key: 'category',
+    width: 100,
+    render(row) {
+      return h(NTag, { size: 'small', type: 'info' }, { default: () => row.category || '-' })
+    },
+  },
+  { title: '描述', key: 'description', ellipsis: { tooltip: true } },
+  {
+    title: 'Prompt',
+    key: 'promptText',
+    ellipsis: { tooltip: true },
+    width: 300,
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 100,
+    render(row) {
+      return h(NSpace, { size: 4 }, {
+        default: () => [
+          h(NButton, {
+            size: 'tiny',
+            type: 'error',
+            quaternary: true,
+            onClick: () => handleDelete(row),
+          }, { default: () => '删除' }),
+        ],
+      })
+    },
+  },
+]
+
+async function loadPrompts() {
+  loading.value = true
+  try {
+    const res = await getPrompts({
+      current: pagination.page || 1,
+      size: pagination.pageSize || 10,
+    })
+    const pageData = (res as any).data?.data
+    prompts.value = pageData?.records || []
+    pagination.itemCount = pageData?.total
+  } catch {
+    prompts.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleCreate() {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return false
+  }
+
+  creating.value = true
+  try {
+    await createPrompt(formData)
+    message.success('创建成功')
+    showCreateModal.value = false
+    resetForm()
+    await loadPrompts()
+    return true
+  } catch {
+    message.error('创建失败')
+    return false
+  } finally {
+    creating.value = false
+  }
+}
+
+function handleDelete(row: PromptVO) {
+  dialog.warning({
+    title: '删除模板',
+    content: `确定要删除模板 "${row.name}" 吗？`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await deletePrompt(row.id)
+        message.success('删除成功')
+        await loadPrompts()
+      } catch {
+        message.error('删除失败')
+      }
+    },
+  })
+}
+
+function resetForm() {
+  formData.name = ''
+  formData.description = ''
+  formData.promptText = ''
+  formData.category = undefined
+}
+
+function handlePageChange(page: number) {
+  pagination.page = page
+  loadPrompts()
+}
+
+function handlePageSizeChange(pageSize: number) {
+  pagination.pageSize = pageSize
+  pagination.page = 1
+  loadPrompts()
+}
+
+onMounted(() => {
+  loadPrompts()
+})
+</script>

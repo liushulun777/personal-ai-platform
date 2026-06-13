@@ -7,14 +7,24 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiChatPanel: typeof import('./components/ai/AiChatPanel.vue')['default']
+    AiGenerateButton: typeof import('./components/ai/AiGenerateButton.vue')['default']
     FileUpload: typeof import('./components/common/FileUpload.vue')['default']
     NBackTop: typeof import('naive-ui')['NBackTop']
     NButton: typeof import('naive-ui')['NButton']
     NCard: typeof import('naive-ui')['NCard']
     NDataTable: typeof import('naive-ui')['NDataTable']
     NIcon: typeof import('naive-ui')['NIcon']
+    NInput: typeof import('naive-ui')['NInput']
     NotFound: typeof import('./components/common/NotFound.vue')['default']
+    NPopover: typeof import('naive-ui')['NPopover']
+    NRadio: typeof import('naive-ui')['NRadio']
+    NRadioGroup: typeof import('naive-ui')['NRadioGroup']
+    NSelect: typeof import('naive-ui')['NSelect']
+    NSpin: typeof import('naive-ui')['NSpin']
+    NTag: typeof import('naive-ui')['NTag']
     NUpload: typeof import('naive-ui')['NUpload']
+    PromptSelector: typeof import('./components/ai/PromptSelector.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

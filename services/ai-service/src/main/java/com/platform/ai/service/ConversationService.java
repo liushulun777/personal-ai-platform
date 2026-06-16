@@ -51,6 +51,14 @@ public interface ConversationService {
     ConversationVO getConversation(Long conversationId);
 
     /**
+     * 重命名对话
+     *
+     * @param conversationId 对话ID
+     * @param title          新标题
+     */
+    void renameConversation(Long conversationId, String title);
+
+    /**
      * 删除对话
      *
      * @param conversationId 对话ID

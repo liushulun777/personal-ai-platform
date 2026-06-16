@@ -1,10 +1,10 @@
 import request from '@/utils/request'
 import type { ChatDTO, ChatVO, ConversationListVO, ConversationVO, ModelInfo, PromptVO, PromptCreateDTO } from '@/types/ai'
-import type { PageResult, PageQuery } from '@/types/api'
+import type { ApiResult, PageResult, PageQuery } from '@/types/api'
 
 /** AI 生成摘要 */
 export function generateSummary(content: string, maxLength?: number) {
-  return request.post<string>('/ai/generate/summary', {
+  return request.post<ApiResult<string>>('/ai/generate/summary', {
     content,
     maxLength: maxLength || 200,
   })
@@ -12,7 +12,7 @@ export function generateSummary(content: string, maxLength?: number) {
 
 /** AI 生成标签 */
 export function generateTags(title: string, content: string, count?: number) {
-  return request.post<string[]>('/ai/generate/tags', {
+  return request.post<ApiResult<string[]>>('/ai/generate/tags', {
     title,
     content,
     count: count || 5,
@@ -21,7 +21,7 @@ export function generateTags(title: string, content: string, count?: number) {
 
 /** AI 生成标题 */
 export function generateTitles(content: string, count?: number) {
-  return request.post<string[]>('/ai/generate/titles', {
+  return request.post<ApiResult<string[]>>('/ai/generate/titles', {
     content,
     count: count || 3,
   })
@@ -29,19 +29,20 @@ export function generateTitles(content: string, count?: number) {
 
 /** AI 对话（同步） */
 export function chat(data: ChatDTO) {
-  return request.post<ChatVO>('/ai/conversations/chat', data)
+  return request.post<ApiResult<ChatVO>>('/ai/conversations/chat', data)
 }
 
 /**
  * AI 流式对话（SSE）
- * 返回 ReadableStream，通过回调逐字接收回复
+ * 返回 AbortController，可通过 abort() 取消流式请求
  */
 export async function chatStream(
   data: ChatDTO,
   onChunk: (text: string) => void,
   onDone?: () => void,
   onError?: (error: Error) => void
-) {
+): Promise<AbortController> {
+  const controller = new AbortController()
   const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
   const authStore = (await import('@/stores/auth')).useAuthStore()
 
@@ -53,6 +54,7 @@ export async function chatStream(
         'Authorization': authStore.token || '',
       },
       body: JSON.stringify(data),
+      signal: controller.signal,
     })
 
     if (!response.ok) {
@@ -109,51 +111,67 @@ export async function chatStream(
 
     onDone?.()
   } catch (error: any) {
-    onError?.(error)
+    if (error.name === 'AbortError') {
+      onDone?.()
+    } else {
+      onError?.(error)
+    }
   }
+
+  return controller
 }
 
 /** 对话列表 */
 export function getConversations(params: PageQuery) {
-  return request.get<PageResult<ConversationListVO>>('/ai/conversations', { params })
+  return request.get<ApiResult<PageResult<ConversationListVO>>>('/ai/conversations', { params })
 }
 
 /** 对话详情 */
 export function getConversationDetail(conversationId: number) {
-  return request.get<ConversationVO>(`/ai/conversations/${conversationId}`)
+  return request.get<ApiResult<ConversationVO>>(`/ai/conversations/${conversationId}`)
 }
 
 /** 删除对话 */
 export function deleteConversation(conversationId: number) {
-  return request.delete(`/ai/conversations/${conversationId}`)
+  return request.delete<ApiResult<void>>(`/ai/conversations/${conversationId}`)
 }
 
 /** 获取可用模型 */
 export function getAvailableModels() {
-  return request.get<ModelInfo[]>('/ai/models')
+  return request.get<ApiResult<ModelInfo[]>>('/ai/models')
 }
 
 /** 获取 Prompt 模板列表 */
 export function getPrompts(params: PageQuery) {
-  return request.get<PageResult<PromptVO>>('/ai/prompts', { params })
+  return request.get<ApiResult<PageResult<PromptVO>>>('/ai/prompts', { params })
 }
 
 /** 按分类获取 Prompt 模板 */
 export function getPromptsByCategory(category: string) {
-  return request.get<PromptVO[]>(`/ai/prompts/category/${category}`)
+  return request.get<ApiResult<PromptVO[]>>(`/ai/prompts/category/${category}`)
 }
 
 /** 获取 Prompt 分类统计 */
 export function getPromptCategories() {
-  return request.get<Record<string, number>>('/ai/prompts/categories')
+  return request.get<ApiResult<Record<string, number>>>('/ai/prompts/categories')
 }
 
 /** 创建 Prompt 模板 */
 export function createPrompt(data: PromptCreateDTO) {
-  return request.post<PromptVO>('/ai/prompts', data)
+  return request.post<ApiResult<PromptVO>>('/ai/prompts', data)
+}
+
+/** 更新 Prompt 模板 */
+export function updatePrompt(id: number, data: PromptCreateDTO) {
+  return request.put<ApiResult<PromptVO>>(`/ai/prompts/${id}`, data)
 }
 
 /** 删除 Prompt 模板 */
 export function deletePrompt(id: number) {
-  return request.delete(`/ai/prompts/${id}`)
+  return request.delete<ApiResult<void>>(`/ai/prompts/${id}`)
+}
+
+/** 重命名对话 */
+export function renameConversation(conversationId: number, title: string) {
+  return request.put<ApiResult<void>>(`/ai/conversations/${conversationId}/title`, null, { params: { title } })
 }

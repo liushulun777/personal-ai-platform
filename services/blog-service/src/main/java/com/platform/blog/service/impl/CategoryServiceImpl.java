@@ -15,6 +15,7 @@ import com.platform.common.core.exception.BusinessException;
 import com.platform.common.core.result.ResultCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -50,6 +51,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long create(CategoryCreateDTO createDTO) {
         // 检查别名是否重复
         Long count = categoryMapper.selectCount(
@@ -68,6 +70,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(Long id, CategoryUpdateDTO updateDTO) {
         Category category = categoryMapper.selectById(id);
         if (category == null) {
@@ -95,6 +98,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         // 检查是否有文章使用该分类
         Long articleCount = articleMapper.selectCount(

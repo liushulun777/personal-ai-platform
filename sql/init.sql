@@ -405,3 +405,252 @@ INSERT INTO biz_tag (id, name, slug, color, sort) VALUES
 (6, 'Kubernetes', 'kubernetes', '#326ce5', 6),
 (7, 'AI', 'ai', '#ff6b6b', 7),
 (8, '前端', 'frontend', '#f7df1e', 8);
+
+-- ============================================================
+-- 知识库模块
+-- ============================================================
+
+-- 启用 pgvector 扩展
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 知识库文档表
+CREATE TABLE kb_document (
+    id              BIGINT          PRIMARY KEY,
+    title           VARCHAR(200)    NOT NULL,
+    file_type       VARCHAR(20),
+    file_url        VARCHAR(500),
+    file_size       BIGINT,
+    content         TEXT,
+    chunk_count     INT             NOT NULL DEFAULT 0,
+    status          INT             NOT NULL DEFAULT 0,
+    category_id     BIGINT,
+    author_id       BIGINT,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_document_status ON kb_document(status);
+CREATE INDEX idx_document_category ON kb_document(category_id);
+
+COMMENT ON TABLE kb_document IS '知识库文档表';
+COMMENT ON COLUMN kb_document.status IS '状态: 0-待处理, 1-处理中, 2-就绪, 3-失败';
+
+-- 知识库文本分块表
+CREATE TABLE kb_chunk (
+    id              BIGINT          PRIMARY KEY,
+    document_id     BIGINT          NOT NULL,
+    chunk_index     INT             NOT NULL,
+    content         TEXT            NOT NULL,
+    token_count     INT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_chunk_document ON kb_chunk(document_id);
+
+COMMENT ON TABLE kb_chunk IS '知识库文本分块表';
+
+-- 知识库向量嵌入表
+CREATE TABLE kb_embedding (
+    id              BIGINT          PRIMARY KEY,
+    chunk_id        BIGINT          NOT NULL,
+    document_id     BIGINT          NOT NULL,
+    embedding       vector(1024),
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_embedding_chunk ON kb_embedding(chunk_id);
+CREATE INDEX idx_embedding_document ON kb_embedding(document_id);
+
+COMMENT ON TABLE kb_embedding IS '知识库向量嵌入表';
+COMMENT ON COLUMN kb_embedding.embedding IS '向量嵌入 (pgvector, 维度1024)';
+
+-- ============================================================
+-- 项目管理模块
+-- ============================================================
+
+-- 项目表
+CREATE TABLE pm_project (
+    id              BIGINT          PRIMARY KEY,
+    name            VARCHAR(100)    NOT NULL,
+    description     TEXT,
+    status          SMALLINT        NOT NULL DEFAULT 0,
+    priority        SMALLINT        NOT NULL DEFAULT 1,
+    owner_id        BIGINT,
+    start_date      DATE,
+    end_date        DATE,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_project_owner ON pm_project(owner_id);
+CREATE INDEX idx_project_status ON pm_project(status);
+
+COMMENT ON TABLE pm_project IS '项目表';
+COMMENT ON COLUMN pm_project.name IS '项目名称';
+COMMENT ON COLUMN pm_project.description IS '项目描述';
+COMMENT ON COLUMN pm_project.status IS '状态: 0-规划中, 1-进行中, 2-已完成, 3-已归档';
+COMMENT ON COLUMN pm_project.priority IS '优先级: 0-低, 1-中, 2-高, 3-紧急';
+COMMENT ON COLUMN pm_project.owner_id IS '负责人ID';
+COMMENT ON COLUMN pm_project.start_date IS '开始日期';
+COMMENT ON COLUMN pm_project.end_date IS '结束日期';
+
+-- 任务表
+CREATE TABLE pm_task (
+    id              BIGINT          PRIMARY KEY,
+    project_id      BIGINT          NOT NULL,
+    title           VARCHAR(200)    NOT NULL,
+    description     TEXT,
+    status          SMALLINT        NOT NULL DEFAULT 0,
+    priority        SMALLINT        NOT NULL DEFAULT 1,
+    assignee_id     BIGINT,
+    reporter_id     BIGINT,
+    due_date        DATE,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_task_project ON pm_task(project_id);
+CREATE INDEX idx_task_assignee ON pm_task(assignee_id);
+CREATE INDEX idx_task_status ON pm_task(status);
+
+COMMENT ON TABLE pm_task IS '任务表';
+COMMENT ON COLUMN pm_task.project_id IS '所属项目ID';
+COMMENT ON COLUMN pm_task.title IS '任务标题';
+COMMENT ON COLUMN pm_task.description IS '任务描述';
+COMMENT ON COLUMN pm_task.status IS '状态: 0-待办, 1-进行中, 2-已完成, 3-已关闭';
+COMMENT ON COLUMN pm_task.priority IS '优先级: 0-低, 1-中, 2-高, 3-紧急';
+COMMENT ON COLUMN pm_task.assignee_id IS '执行人ID';
+COMMENT ON COLUMN pm_task.reporter_id IS '报告人ID';
+COMMENT ON COLUMN pm_task.due_date IS '截止日期';
+
+-- Bug表
+CREATE TABLE pm_bug (
+    id              BIGINT          PRIMARY KEY,
+    project_id      BIGINT          NOT NULL,
+    title           VARCHAR(200)    NOT NULL,
+    description     TEXT,
+    severity        SMALLINT        NOT NULL DEFAULT 1,
+    status          SMALLINT        NOT NULL DEFAULT 0,
+    assignee_id     BIGINT,
+    reporter_id     BIGINT,
+    due_date        DATE,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_bug_project ON pm_bug(project_id);
+CREATE INDEX idx_bug_assignee ON pm_bug(assignee_id);
+CREATE INDEX idx_bug_status ON pm_bug(status);
+
+COMMENT ON TABLE pm_bug IS 'Bug表';
+COMMENT ON COLUMN pm_bug.project_id IS '所属项目ID';
+COMMENT ON COLUMN pm_bug.title IS 'Bug标题';
+COMMENT ON COLUMN pm_bug.description IS 'Bug描述';
+COMMENT ON COLUMN pm_bug.severity IS '严重程度: 0-轻微, 1-一般, 2-严重, 3-致命';
+COMMENT ON COLUMN pm_bug.status IS '状态: 0-待确认, 1-已确认, 2-修复中, 3-已修复, 4-已关闭';
+COMMENT ON COLUMN pm_bug.assignee_id IS '处理人ID';
+COMMENT ON COLUMN pm_bug.reporter_id IS '报告人ID';
+COMMENT ON COLUMN pm_bug.due_date IS '截止日期';
+
+-- ============================================================
+-- MCP 平台表
+-- ============================================================
+
+-- MCP 服务表
+CREATE TABLE IF NOT EXISTS mcp_server (
+    id              BIGINT          PRIMARY KEY,
+    name            VARCHAR(100)    NOT NULL,
+    description     TEXT,
+    transport_type  VARCHAR(20)     NOT NULL DEFAULT 'stdio',
+    endpoint        VARCHAR(500),
+    command         VARCHAR(500),
+    args            TEXT,
+    env_vars        TEXT,
+    status          SMALLINT        NOT NULL DEFAULT 1,
+    author_id       BIGINT,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_mcp_server_status ON mcp_server(status);
+CREATE UNIQUE INDEX uk_mcp_server_name ON mcp_server(name) WHERE deleted = 0;
+
+COMMENT ON TABLE mcp_server IS 'MCP服务注册表';
+COMMENT ON COLUMN mcp_server.name IS '服务名称';
+COMMENT ON COLUMN mcp_server.description IS '服务描述';
+COMMENT ON COLUMN mcp_server.transport_type IS '传输类型: stdio, sse, streamable_http';
+COMMENT ON COLUMN mcp_server.endpoint IS 'SSE/HTTP端点地址';
+COMMENT ON COLUMN mcp_server.command IS 'stdio启动命令';
+COMMENT ON COLUMN mcp_server.args IS 'stdio启动参数(JSON数组)';
+COMMENT ON COLUMN mcp_server.env_vars IS '环境变量(JSON对象)';
+COMMENT ON COLUMN mcp_server.status IS '状态: 0-禁用, 1-启用';
+COMMENT ON COLUMN mcp_server.author_id IS '创建者ID';
+
+-- MCP 工具表
+CREATE TABLE IF NOT EXISTS mcp_tool (
+    id              BIGINT          PRIMARY KEY,
+    server_id       BIGINT          NOT NULL,
+    name            VARCHAR(100)    NOT NULL,
+    description     TEXT,
+    input_schema    TEXT,
+    output_schema   TEXT,
+    status          SMALLINT        NOT NULL DEFAULT 1,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_mcp_tool_server ON mcp_tool(server_id);
+CREATE INDEX idx_mcp_tool_status ON mcp_tool(status);
+
+COMMENT ON TABLE mcp_tool IS 'MCP工具表';
+COMMENT ON COLUMN mcp_tool.server_id IS '关联MCP服务ID';
+COMMENT ON COLUMN mcp_tool.name IS '工具名称';
+COMMENT ON COLUMN mcp_tool.description IS '工具描述';
+COMMENT ON COLUMN mcp_tool.input_schema IS '输入参数JSON Schema';
+COMMENT ON COLUMN mcp_tool.output_schema IS '输出参数JSON Schema';
+COMMENT ON COLUMN mcp_tool.status IS '状态: 0-禁用, 1-启用';
+
+-- MCP 资源表
+CREATE TABLE IF NOT EXISTS mcp_resource (
+    id              BIGINT          PRIMARY KEY,
+    server_id       BIGINT          NOT NULL,
+    uri             VARCHAR(500)    NOT NULL,
+    name            VARCHAR(100)    NOT NULL,
+    description     TEXT,
+    mime_type       VARCHAR(100),
+    status          SMALLINT        NOT NULL DEFAULT 1,
+    create_by       BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_by       BIGINT,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_mcp_resource_server ON mcp_resource(server_id);
+CREATE INDEX idx_mcp_resource_status ON mcp_resource(status);
+
+COMMENT ON TABLE mcp_resource IS 'MCP资源表';
+COMMENT ON COLUMN mcp_resource.server_id IS '关联MCP服务ID';
+COMMENT ON COLUMN mcp_resource.uri IS '资源URI';
+COMMENT ON COLUMN mcp_resource.name IS '资源名称';
+COMMENT ON COLUMN mcp_resource.description IS '资源描述';
+COMMENT ON COLUMN mcp_resource.mime_type IS 'MIME类型';
+COMMENT ON COLUMN mcp_resource.status IS '状态: 0-禁用, 1-启用';

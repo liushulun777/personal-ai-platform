@@ -16,3 +16,4 @@ resources:
   - blog-service.yaml
   - search-service.yaml
   - ai-service.yaml
+  - knowledge-service.yaml

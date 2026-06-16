@@ -45,6 +45,15 @@ public interface PromptService {
     PromptVO createPrompt(PromptCreateDTO dto);
 
     /**
+     * 更新Prompt模板
+     *
+     * @param id  模板ID
+     * @param dto 更新请求
+     * @return 更新后的模板
+     */
+    PromptVO updatePrompt(Long id, PromptCreateDTO dto);
+
+    /**
      * 删除Prompt模板
      *
      * @param id 模板ID

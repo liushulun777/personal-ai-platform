@@ -10,6 +10,7 @@ import com.platform.file.service.FileService;
 import com.platform.file.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class FileServiceImpl implements FileService {
     private final MinioService minioService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public FileVO upload(MultipartFile file, String module) {
         // 校验文件
         if (file.isEmpty()) {
@@ -59,6 +61,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<FileVO> uploadBatch(List<MultipartFile> files, String module) {
         List<FileVO> result = new ArrayList<>();
         for (MultipartFile file : files) {
@@ -68,6 +71,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         SysFile sysFile = fileMapper.selectById(id);
         if (sysFile == null) {

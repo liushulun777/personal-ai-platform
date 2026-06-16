@@ -53,6 +53,27 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: knowledge-service
+          uri: lb://knowledge-service
+          predicates:
+            - Path=/knowledge/**
+          filters:
+            - StripPrefix=1
+
+        - id: project-service
+          uri: lb://project-service
+          predicates:
+            - Path=/project/**
+          filters:
+            - StripPrefix=1
+
+        - id: mcp-service
+          uri: lb://mcp-service
+          predicates:
+            - Path=/mcp/**
+          filters:
+            - StripPrefix=1
+
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
 

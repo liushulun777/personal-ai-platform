@@ -162,6 +162,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateStatus(Long id, UserStatusDTO statusDTO) {
         // 检查是否为超级管理员
         if (id.equals(CommonConstant.SUPER_ADMIN_ID)) {

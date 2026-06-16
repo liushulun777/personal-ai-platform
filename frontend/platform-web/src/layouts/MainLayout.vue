@@ -29,7 +29,9 @@ const menuOptions: MenuOption[] = [
     children: [
       { label: '用户管理', key: 'UserList' },
       { label: '角色管理', key: 'RoleList' },
-      { label: '菜单管理', key: 'MenuList' }
+      { label: '菜单管理', key: 'MenuList' },
+      { label: '字典管理', key: 'DictList' },
+      { label: '操作日志', key: 'LogList' }
     ]
   },
   {
@@ -43,12 +45,40 @@ const menuOptions: MenuOption[] = [
     ]
   },
   {
+    label: '知识库',
+    key: 'Knowledge',
+    icon: renderIcon('K'),
+    children: [
+      { label: '文档管理', key: 'DocumentList' },
+      { label: '知识问答', key: 'KnowledgeChat' }
+    ]
+  },
+  {
     label: 'AI 助手',
     key: 'AI',
     icon: renderIcon('A'),
     children: [
       { label: 'AI 对话', key: 'AiChat' },
       { label: 'Prompt 模板', key: 'PromptList' }
+    ]
+  },
+  {
+    label: '项目管理',
+    key: 'Project',
+    icon: renderIcon('P'),
+    children: [
+      { label: '项目管理', key: 'ProjectList' },
+      { label: '任务管理', key: 'TaskList' },
+      { label: 'Bug管理', key: 'BugList' }
+    ]
+  },
+  {
+    label: 'MCP 平台',
+    key: 'MCP',
+    icon: renderIcon('M'),
+    children: [
+      { label: 'MCP 服务', key: 'McpServerList' },
+      { label: 'MCP 工具', key: 'McpToolList' }
     ]
   }
 ]

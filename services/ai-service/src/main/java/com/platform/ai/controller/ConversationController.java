@@ -73,6 +73,18 @@ public class ConversationController {
     }
 
     /**
+     * 重命名对话
+     */
+    @Operation(summary = "重命名对话", description = "修改对话标题")
+    @PutMapping("/{conversationId}/title")
+    public Result<Void> renameConversation(
+            @Parameter(description = "对话ID", required = true) @PathVariable Long conversationId,
+            @Parameter(description = "新标题", required = true) @RequestParam String title) {
+        conversationService.renameConversation(conversationId, title);
+        return Result.success();
+    }
+
+    /**
      * 删除对话
      */
     @Operation(summary = "删除对话", description = "删除对话及所有消息")

@@ -37,6 +37,12 @@
           <div v-else-if="chatLoading && msg.role === 'assistant' && streamingMsgId === msg.id" class="message-text streaming" v-html="renderStreamingContent(msg.content)" />
           <!-- 完成后：markdown 渲染 -->
           <div v-else class="message-text" v-html="renderMarkdown(msg.content)" />
+          <!-- 助手消息：复制按钮 -->
+          <div v-if="msg.role === 'assistant' && msg.content && !(chatLoading && streamingMsgId === msg.id)" class="message-actions">
+            <n-button size="tiny" quaternary @click="copyMessage(msg.content)">
+              复制
+            </n-button>
+          </div>
         </div>
       </div>
     </div>
@@ -63,10 +69,18 @@
         <div class="actions-right">
           <n-button size="tiny" @click="handleClear">清空对话</n-button>
           <n-button
+            v-if="chatLoading"
+            type="warning"
+            size="tiny"
+            @click="handleStop"
+          >
+            停止
+          </n-button>
+          <n-button
+            v-else
             type="primary"
             size="tiny"
             :disabled="!inputMessage.trim()"
-            :loading="chatLoading"
             @click="handleSend"
           >
             发送
@@ -78,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, shallowRef } from 'vue'
 import { marked } from 'marked'
 import {
   ChatbubblesOutline,
@@ -102,11 +116,12 @@ const modelOptions = ref<{ label: string; value: string }[]>([])
 const messagesRef = ref<HTMLElement>()
 const streamingMsgId = ref<number | null>(null)
 const selectedPrompt = ref<PromptVO | null>(null)
+const abortController = shallowRef<AbortController | null>(null)
 
 onMounted(async () => {
   try {
     const res = await getAvailableModels()
-    const models = (res as any).data?.data || []
+    const models = res.data.data || []
     modelOptions.value = models.map((m: ModelInfo) => ({
       label: m.name,
       value: m.name,
@@ -177,7 +192,7 @@ async function handleSend() {
   streamingMsgId.value = aiMsgId
   let fullReply = ''
 
-  await chatStream(
+  abortController.value = await chatStream(
     {
       message: finalMessage,
       conversationId: conversationId.value,
@@ -212,6 +227,29 @@ async function handleSend() {
       scrollToBottom()
     }
   )
+}
+
+function handleStop() {
+  if (abortController.value) {
+    abortController.value.abort()
+    abortController.value = null
+  }
+  chatLoading.value = false
+  streamingMsgId.value = null
+}
+
+async function copyMessage(content: string) {
+  try {
+    await navigator.clipboard.writeText(content)
+  } catch {
+    // fallback
+    const textarea = document.createElement('textarea')
+    textarea.value = content
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  }
 }
 
 function handleClear() {
@@ -269,7 +307,7 @@ async function loadConversation(id: number) {
   chatLoading.value = true
   try {
     const res = await getConversationDetail(id)
-    const detail = (res as any).data?.data
+    const detail = res.data.data
     conversationId.value = id
     messages.value = (detail?.messages || []).map((m: any) => ({
       id: m.id,
@@ -279,7 +317,7 @@ async function loadConversation(id: number) {
       createTime: m.createTime,
     }))
     scrollToBottom()
-  } catch (error: any) {
+  } catch {
     messages.value = []
   } finally {
     chatLoading.value = false
@@ -408,6 +446,12 @@ defineExpose({ handleClear, loadConversation })
   padding: 8px;
   border-radius: 4px;
   overflow-x: auto;
+}
+
+.message-actions {
+  margin-top: 4px;
+  display: flex;
+  gap: 4px;
 }
 
 .chat-input {

@@ -56,7 +56,7 @@ const chatPanelRef = ref()
 async function loadConversations() {
   try {
     const res = await getConversations({ current: 1, size: 100 })
-    conversations.value = (res as any).data?.data?.records || []
+    conversations.value = res.data.data?.records || []
   } catch {
     conversations.value = []
   }

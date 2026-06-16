@@ -5,9 +5,9 @@ services:
   # 基础设施
   # ============================================================
 
-  # PostgreSQL 17
+  # PostgreSQL 17 (with pgvector)
   postgres:
-    image: postgres:17.9-alpine3.22
+    image: pgvector/pgvector:pg17-alpine
     container_name: platform-postgres
     ports:
       - "5432:5432"
@@ -67,9 +67,12 @@ services:
       - platform-network
     restart: unless-stopped
 
-  # ElasticSearch 8.x
+  # ElasticSearch 8.x (with IK analyzer plugin)
   elasticsearch:
-    image: docker.io/elasticsearch:8.17.0
+    build:
+      context: ./docker/elasticsearch
+      dockerfile: Dockerfile
+    image: platform-elasticsearch:8.17.0
     container_name: platform-elasticsearch
     ports:
       - "9200:9200"
@@ -80,7 +83,6 @@ services:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     volumes:
       - ./data/elasticsearch:/usr/share/elasticsearch/data
-    user: root
     networks:
       - platform-network
     restart: unless-stopped
@@ -103,12 +105,14 @@ services:
     container_name: platform-kafka
     ports:
       - "9092:9092"
+      - "29092:29092"
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -280,6 +284,76 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Knowledge Service
+  knowledge-service:
+    build:
+      context: ./services/knowledge-service
+      dockerfile: Dockerfile
+    container_name: platform-knowledge
+    ports:
+      - "1087:1087"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # Project Service
+  project-service:
+    build:
+      context: ./services/project-service
+      dockerfile: Dockerfile
+    container_name: platform-project
+    ports:
+      - "1088:1088"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+      - nacos
+    networks:
+      - platform-network
+    restart: unless-stopped
+
+  # MCP Service
+  mcp-service:
+    build:
+      context: ./services/mcp-service
+      dockerfile: Dockerfile
+    container_name: platform-mcp
+    ports:
+      - "1089:1089"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       - postgres
       - redis

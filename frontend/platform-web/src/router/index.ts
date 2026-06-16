@@ -42,6 +42,18 @@ const routes: RouteRecordRaw[] = [
             name: 'MenuList',
             component: () => import('@/modules/system/views/MenuListView.vue'),
             meta: { title: '菜单管理', requiresAuth: true }
+          },
+          {
+            path: 'dicts',
+            name: 'DictList',
+            component: () => import('@/modules/system/views/DictListView.vue'),
+            meta: { title: '字典管理', requiresAuth: true }
+          },
+          {
+            path: 'logs',
+            name: 'LogList',
+            component: () => import('@/modules/system/views/LogListView.vue'),
+            meta: { title: '操作日志', requiresAuth: true }
           }
         ]
       },
@@ -83,6 +95,25 @@ const routes: RouteRecordRaw[] = [
         ]
       },
       {
+        path: 'knowledge',
+        name: 'Knowledge',
+        redirect: '/knowledge/documents',
+        children: [
+          {
+            path: 'documents',
+            name: 'DocumentList',
+            component: () => import('@/modules/knowledge/views/DocumentListView.vue'),
+            meta: { title: '文档管理', requiresAuth: true }
+          },
+          {
+            path: 'chat',
+            name: 'KnowledgeChat',
+            component: () => import('@/modules/knowledge/views/KnowledgeChatView.vue'),
+            meta: { title: '知识问答', requiresAuth: true }
+          }
+        ]
+      },
+      {
         path: 'ai',
         name: 'AI',
         redirect: '/ai/chat',
@@ -98,6 +129,50 @@ const routes: RouteRecordRaw[] = [
             name: 'PromptList',
             component: () => import('@/modules/ai/views/PromptListView.vue'),
             meta: { title: 'Prompt 模板', requiresAuth: true }
+          }
+        ]
+      },
+      {
+        path: 'project',
+        name: 'Project',
+        redirect: '/project/projects',
+        children: [
+          {
+            path: 'projects',
+            name: 'ProjectList',
+            component: () => import('@/modules/project/views/ProjectListView.vue'),
+            meta: { title: '项目管理', requiresAuth: true }
+          },
+          {
+            path: 'tasks',
+            name: 'TaskList',
+            component: () => import('@/modules/project/views/TaskListView.vue'),
+            meta: { title: '任务管理', requiresAuth: true }
+          },
+          {
+            path: 'bugs',
+            name: 'BugList',
+            component: () => import('@/modules/project/views/BugListView.vue'),
+            meta: { title: 'Bug管理', requiresAuth: true }
+          }
+        ]
+      },
+      {
+        path: 'mcp',
+        name: 'MCP',
+        redirect: '/mcp/servers',
+        children: [
+          {
+            path: 'servers',
+            name: 'McpServerList',
+            component: () => import('@/modules/mcp/views/McpServerListView.vue'),
+            meta: { title: 'MCP 服务', requiresAuth: true }
+          },
+          {
+            path: 'tools',
+            name: 'McpToolList',
+            component: () => import('@/modules/mcp/views/McpToolListView.vue'),
+            meta: { title: 'MCP 工具', requiresAuth: true }
           }
         ]
       }

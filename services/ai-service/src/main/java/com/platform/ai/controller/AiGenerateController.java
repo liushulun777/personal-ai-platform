@@ -5,8 +5,12 @@ import com.platform.ai.domain.dto.SummaryDTO;
 import com.platform.ai.domain.dto.TagGenerateDTO;
 import com.platform.ai.domain.dto.TitleGenerateDTO;
 import com.platform.ai.domain.vo.ArticleAskVO;
+import com.platform.ai.feign.BlogServiceClient;
+import com.platform.ai.feign.dto.ArticleContentDTO;
 import com.platform.ai.service.AiGenerateService;
+import com.platform.common.core.exception.BusinessException;
 import com.platform.common.core.result.Result;
+import com.platform.common.core.result.ResultCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +29,7 @@ import java.util.List;
 public class AiGenerateController {
 
     private final AiGenerateService aiGenerateService;
+    private final BlogServiceClient blogServiceClient;
 
     /**
      * 生成摘要
@@ -66,11 +71,11 @@ public class AiGenerateController {
     @Operation(summary = "文章问答", description = "基于文章内容回答用户问题")
     @PostMapping("/ask")
     public Result<ArticleAskVO> askArticle(@Valid @RequestBody ArticleAskDTO articleAskDTO) {
-        // TODO: 从 blog-service 获取文章内容
-        // 临时使用 question 作为内容
-        return Result.success(aiGenerateService.askArticle(
-                articleAskDTO.getQuestion(),
-                articleAskDTO.getQuestion()
-        ));
+        Result<ArticleContentDTO> articleResult = blogServiceClient.getArticleById(articleAskDTO.getArticleId());
+        if (articleResult.getCode() != ResultCode.SUCCESS.getCode() || articleResult.getData() == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "文章不存在");
+        }
+        String articleContent = articleResult.getData().getContent();
+        return Result.success(aiGenerateService.askArticle(articleContent, articleAskDTO.getQuestion()));
     }
 }

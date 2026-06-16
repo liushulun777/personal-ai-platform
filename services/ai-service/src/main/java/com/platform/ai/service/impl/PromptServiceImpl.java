@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,7 @@ public class PromptServiceImpl implements PromptService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public PromptVO createPrompt(PromptCreateDTO dto) {
         try {
             Prompt prompt = new Prompt();
@@ -85,10 +87,26 @@ public class PromptServiceImpl implements PromptService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PromptVO updatePrompt(Long id, PromptCreateDTO dto) {
+        Prompt prompt = promptMapper.selectById(id);
+        if (prompt == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "模板不存在");
+        }
+        prompt.setName(dto.getName());
+        prompt.setDescription(dto.getDescription());
+        prompt.setPromptText(dto.getPromptText());
+        prompt.setCategory(dto.getCategory());
+        promptMapper.updateById(prompt);
+        return convertToVO(prompt);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deletePrompt(Long id) {
         Prompt prompt = promptMapper.selectById(id);
         if (prompt == null) {
-            throw new BusinessException(ResultCode.FAIL, "模板不存在");
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "模板不存在");
         }
         promptMapper.deleteById(id);
     }

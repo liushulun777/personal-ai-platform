@@ -2,7 +2,7 @@
   <div>
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-medium">Prompt 模板管理</h2>
-      <NButton type="primary" size="small" @click="showCreateModal = true">
+      <NButton type="primary" size="small" @click="handleAdd">
         新建模板
       </NButton>
     </div>
@@ -19,15 +19,15 @@
       />
     </NCard>
 
-    <!-- 创建模板弹窗 -->
+    <!-- 创建/编辑模板弹窗 -->
     <NModal
       v-model:show="showCreateModal"
       preset="dialog"
-      title="新建 Prompt 模板"
-      positive-text="创建"
+      :title="isEdit ? '编辑 Prompt 模板' : '新建 Prompt 模板'"
+      :positive-text="isEdit ? '保存' : '创建'"
       negative-text="取消"
       :loading="creating"
-      @positive-click="handleCreate"
+      @positive-click="handleSubmit"
     >
       <NForm ref="formRef" :model="formData" label-placement="left" label-width="80">
         <NFormItem label="名称" path="name" :rule="{ required: true, message: '请输入模板名称' }">
@@ -74,7 +74,7 @@ import {
   useDialog,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, PaginationProps } from 'naive-ui'
-import { getPrompts, createPrompt, deletePrompt } from '@/api/ai'
+import { getPrompts, createPrompt, updatePrompt, deletePrompt } from '@/api/ai'
 import type { PromptVO, PromptCreateDTO } from '@/types/ai'
 
 const message = useMessage()
@@ -83,6 +83,8 @@ const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
 const creating = ref(false)
 const showCreateModal = ref(false)
+const isEdit = ref(false)
+const editingId = ref<number | null>(null)
 const prompts = ref<PromptVO[]>([])
 
 const formData = reactive<PromptCreateDTO>({
@@ -128,10 +130,15 @@ const columns: DataTableColumns<PromptVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 100,
+    width: 150,
     render(row) {
       return h(NSpace, { size: 4 }, {
         default: () => [
+          h(NButton, {
+            size: 'tiny',
+            quaternary: true,
+            onClick: () => handleEdit(row),
+          }, { default: () => '编辑' }),
           h(NButton, {
             size: 'tiny',
             type: 'error',
@@ -151,7 +158,7 @@ async function loadPrompts() {
       current: pagination.page || 1,
       size: pagination.pageSize || 10,
     })
-    const pageData = (res as any).data?.data
+    const pageData = res.data.data
     prompts.value = pageData?.records || []
     pagination.itemCount = pageData?.total
   } catch {
@@ -161,7 +168,24 @@ async function loadPrompts() {
   }
 }
 
-async function handleCreate() {
+function handleAdd() {
+  isEdit.value = false
+  editingId.value = null
+  resetForm()
+  showCreateModal.value = true
+}
+
+function handleEdit(row: PromptVO) {
+  isEdit.value = true
+  editingId.value = row.id
+  formData.name = row.name
+  formData.description = row.description || ''
+  formData.promptText = row.promptText
+  formData.category = row.category
+  showCreateModal.value = true
+}
+
+async function handleSubmit() {
   try {
     await formRef.value?.validate()
   } catch {
@@ -170,14 +194,19 @@ async function handleCreate() {
 
   creating.value = true
   try {
-    await createPrompt(formData)
-    message.success('创建成功')
+    if (isEdit.value && editingId.value) {
+      await updatePrompt(editingId.value, formData)
+      message.success('更新成功')
+    } else {
+      await createPrompt(formData)
+      message.success('创建成功')
+    }
     showCreateModal.value = false
     resetForm()
     await loadPrompts()
     return true
   } catch {
-    message.error('创建失败')
+    message.error(isEdit.value ? '更新失败' : '创建失败')
     return false
   } finally {
     creating.value = false

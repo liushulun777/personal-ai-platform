@@ -64,6 +64,15 @@ public class PromptController {
     }
 
     /**
+     * 更新Prompt模板
+     */
+    @Operation(summary = "更新模板", description = "更新指定的Prompt模板")
+    @PutMapping("/{id}")
+    public Result<PromptVO> updatePrompt(@PathVariable Long id, @Valid @RequestBody PromptCreateDTO dto) {
+        return Result.success(promptService.updatePrompt(id, dto));
+    }
+
+    /**
      * 删除Prompt模板
      */
     @Operation(summary = "删除模板", description = "删除指定的Prompt模板")

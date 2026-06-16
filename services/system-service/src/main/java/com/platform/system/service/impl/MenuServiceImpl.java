@@ -15,6 +15,7 @@ import com.platform.system.mapper.SysRoleMenuMapper;
 import com.platform.system.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long create(MenuCreateDTO createDTO) {
         SysMenu menu = menuConvert.createDTOToEntity(createDTO);
         menu.setStatus(createDTO.getStatus() != null ? createDTO.getStatus() : CommonConstant.STATUS_ENABLED);
@@ -69,6 +71,7 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(Long id, MenuUpdateDTO updateDTO) {
         SysMenu menu = sysMenuMapper.selectById(id);
         if (menu == null) {
@@ -89,6 +92,7 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         // 检查是否有子菜单
         Long childCount = sysMenuMapper.selectCount(

@@ -22,5 +22,8 @@
         <module>file-service</module>
         <module>search-service</module>
         <module>ai-service</module>
+        <module>knowledge-service</module>
+        <module>project-service</module>
+        <module>mcp-service</module>
     </modules>
 </project>

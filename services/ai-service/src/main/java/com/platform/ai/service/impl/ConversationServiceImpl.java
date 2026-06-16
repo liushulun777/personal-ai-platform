@@ -34,6 +34,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConversationServiceImpl implements ConversationService {
 
+    private static final int CONTEXT_WINDOW_SIZE = 20;
+
     private final ConversationMapper conversationMapper;
     private final MessageMapper messageMapper;
     private final ConversationConvert conversationConvert;
@@ -71,24 +73,14 @@ public class ConversationServiceImpl implements ConversationService {
         userMessage.setCreateTime(LocalDateTime.now());
         messageMapper.insert(userMessage);
 
-        // 获取历史消息作为上下文
-        List<Message> historyMessages = messageMapper.selectList(
-                new LambdaQueryWrapper<Message>()
-                        .eq(Message::getConversationId, conversation.getId())
-                        .orderByAsc(Message::getCreateTime)
-        );
-
-        // 构建上下文
-        StringBuilder context = new StringBuilder();
-        for (Message msg : historyMessages) {
-            context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-        }
+        // 获取历史消息作为上下文（限制窗口大小）
+        String context = buildContext(conversation.getId());
 
         // 获取模型名称（优先使用请求中的模型，其次使用对话的模型）
         String modelName = chatDTO.getModel() != null ? chatDTO.getModel() : conversation.getModel();
 
         // 调用AI服务
-        String reply = aiService.chat(chatDTO.getMessage(), context.toString(), modelName);
+        String reply = aiService.chat(chatDTO.getMessage(), context, modelName);
 
         // 保存AI回复
         Message assistantMessage = new Message();
@@ -167,14 +159,20 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     private String buildContext(Long conversationId) {
-        List<Message> historyMessages = messageMapper.selectList(
+        // 获取所有消息，然后取最近 N 条
+        List<Message> allMessages = messageMapper.selectList(
                 new LambdaQueryWrapper<Message>()
                         .eq(Message::getConversationId, conversationId)
                         .orderByAsc(Message::getCreateTime)
         );
 
+        // 限制上下文窗口：保留最近 CONTEXT_WINDOW_SIZE 条消息
+        List<Message> contextMessages = allMessages.size() > CONTEXT_WINDOW_SIZE
+                ? allMessages.subList(allMessages.size() - CONTEXT_WINDOW_SIZE, allMessages.size())
+                : allMessages;
+
         StringBuilder context = new StringBuilder();
-        for (Message msg : historyMessages) {
+        for (Message msg : contextMessages) {
             context.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
         return context.toString();
@@ -228,6 +226,17 @@ public class ConversationServiceImpl implements ConversationService {
         vo.setMessages(conversationConvert.messageEntityListToVOList(messages));
 
         return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void renameConversation(Long conversationId, String title) {
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "对话不存在");
+        }
+        conversation.setTitle(title);
+        conversationMapper.updateById(conversation);
     }
 
     @Override

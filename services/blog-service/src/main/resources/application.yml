@@ -25,6 +25,9 @@ spring:
         fail-fast: false
   kafka:
     bootstrap-servers: 172.18.0.34:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

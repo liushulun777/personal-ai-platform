@@ -15,6 +15,7 @@ import com.platform.common.core.exception.BusinessException;
 import com.platform.common.core.result.ResultCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -50,6 +51,7 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long create(TagCreateDTO createDTO) {
         // 检查别名是否重复
         Long count = tagMapper.selectCount(
@@ -68,6 +70,7 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(Long id, TagUpdateDTO updateDTO) {
         Tag tag = tagMapper.selectById(id);
         if (tag == null) {
@@ -96,6 +99,7 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         // 检查是否有文章使用该标签
         Long articleCount = articleTagMapper.selectCount(

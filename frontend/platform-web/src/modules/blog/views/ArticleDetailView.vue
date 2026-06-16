@@ -51,7 +51,7 @@ function handleGenerateSummary() {
     message.warning('请先输入文章内容')
     return Promise.reject(new Error('内容为空'))
   }
-  return generateSummary(formData.value.content, 200).then(res => [(res as any).data?.data])
+  return generateSummary(formData.value.content, 200).then(res => [res.data.data])
 }
 
 function handleGenerateTags() {
@@ -59,7 +59,7 @@ function handleGenerateTags() {
     message.warning('请先输入标题和内容')
     return Promise.reject(new Error('标题或内容为空'))
   }
-  return generateTags(formData.value.title, formData.value.content, 5).then(res => (res as any).data?.data)
+  return generateTags(formData.value.title, formData.value.content, 5).then(res => res.data.data)
 }
 
 function handleGenerateTitles() {
@@ -67,7 +67,7 @@ function handleGenerateTitles() {
     message.warning('请先输入文章内容')
     return Promise.reject(new Error('内容为空'))
   }
-  return generateTitles(formData.value.content, 3).then(res => (res as any).data?.data)
+  return generateTitles(formData.value.content, 3).then(res => res.data.data)
 }
 
 // 添加 AI 推荐的标签

@@ -76,7 +76,7 @@ const categoryLabels: Record<string, string> = {
 async function loadCategories() {
   try {
     const res = await getPromptCategories()
-    categories.value = (res as any).data?.data || {}
+    categories.value = res.data.data || {}
     // 默认选中第一个分类
     const firstCat = Object.keys(categories.value)[0]
     if (firstCat) {
@@ -92,7 +92,7 @@ async function selectCategory(category: string) {
   loading.value = true
   try {
     const res = await getPromptsByCategory(category)
-    prompts.value = (res as any).data?.data || []
+    prompts.value = res.data.data || []
   } catch {
     prompts.value = []
   } finally {

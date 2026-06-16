@@ -14,6 +14,7 @@ import com.platform.common.core.result.ResultCode;
 import com.platform.common.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long create(CommentCreateDTO createDTO) {
         Long userId = SecurityUtils.getCurrentUserId();
 
@@ -76,6 +78,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         Comment comment = commentMapper.selectById(id);
         if (comment == null) {

@@ -11,7 +11,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 /**
  * 知识库服务启动类
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
+})
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.platform.knowledge.feign")
 @MapperScan("com.platform.knowledge.mapper")

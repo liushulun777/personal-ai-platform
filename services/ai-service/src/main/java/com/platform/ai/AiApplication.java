@@ -9,8 +9,11 @@ import org.springframework.context.annotation.ComponentScan;
 
 /**
  * AI服务启动类
+ * 排除 Spring AI OpenAI 自动配置（使用自定义 ChatModelFactory）
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
+})
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.platform.ai.feign")
 @MapperScan("com.platform.ai.mapper")

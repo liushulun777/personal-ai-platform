@@ -24,10 +24,18 @@ spring:
         server-addr: 172.18.0.34:8848
         fail-fast: false
   kafka:
-    bootstrap-servers: 172.18.0.34:9092
+    bootstrap-servers: 172.18.0.34:29092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # 不在 JSON 中写入 Java 类型信息，避免跨服务反序列化找不到类
+        spring.json.add.type.headers: false
+        # 元数据获取超时 3s
+        metadata.max.age.ms: 3000
+        # 发送超时 5s（默认 120s 太久）
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 3000
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -47,6 +55,3 @@ sa-token:
   is-read-header: true
   is-read-cookie: false
 
-logging:
-  level:
-    com.platform.blog: debug

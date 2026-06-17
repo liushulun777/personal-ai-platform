@@ -12,6 +12,8 @@ import {
   NPopconfirm,
   NTag,
   NDatePicker,
+  NTimeline,
+  NTimelineItem,
   useMessage
 } from 'naive-ui'
 import type { DataTableColumns, FormInst } from 'naive-ui'
@@ -19,13 +21,23 @@ import {
   getTaskPage,
   createTask,
   updateTask,
-  deleteTask
+  deleteTask,
+  startTask,
+  completeTask,
+  submitReview,
+  approveTask,
+  rejectTask,
+  blockTask,
+  unblockTask,
+  getTaskExecutions,
+  executeAgentTask
 } from '@/api/project'
-import type { TaskVO, TaskCreateParams, TaskUpdateParams } from '@/api/project'
+import type { TaskVO, TaskCreateParams, TaskUpdateParams, TaskExecutionVO } from '@/api/project'
 
 const message = useMessage()
 const loading = ref(false)
 const showModal = ref(false)
+const showExecutionModal = ref(false)
 const isEdit = ref(false)
 const formRef = ref<FormInst | null>(null)
 
@@ -36,6 +48,8 @@ const queryParams = ref({
 })
 
 const tasks = ref<TaskVO[]>([])
+const executions = ref<TaskExecutionVO[]>([])
+const currentTaskId = ref<number | null>(null)
 const pagination = ref({
   page: 1,
   pageSize: 10,
@@ -58,32 +72,49 @@ const formRules = {
   title: [{ required: true, message: '请输入任务标题', trigger: 'blur' }]
 }
 
+// 新的6状态
 const statusOptions = [
-  { label: '待办', value: 0 },
-  { label: '进行中', value: 1 },
-  { label: '已完成', value: 2 },
-  { label: '已关闭', value: 3 }
+  { label: 'BACKLOG', value: 0 },
+  { label: 'READY', value: 1 },
+  { label: 'DOING', value: 2 },
+  { label: 'REVIEW', value: 3 },
+  { label: 'DONE', value: 4 },
+  { label: 'BLOCKED', value: 5 }
 ]
 
 const priorityOptions = [
-  { label: '低', value: 0 },
-  { label: '中', value: 1 },
-  { label: '高', value: 2 },
-  { label: '紧急', value: 3 }
+  { label: 'LOW', value: 0 },
+  { label: 'MEDIUM', value: 1 },
+  { label: 'HIGH', value: 2 },
+  { label: 'URGENT', value: 3 }
 ]
 
-const statusMap: Record<number, { label: string; type: 'success' | 'warning' | 'error' | 'info' }> = {
-  0: { label: '待办', type: 'info' },
-  1: { label: '进行中', type: 'warning' },
-  2: { label: '已完成', type: 'success' },
-  3: { label: '已关闭', type: 'info' }
+const sourceTypeOptions = [
+  { label: '人工创建', value: 'MANUAL' },
+  { label: 'AI生成', value: 'AI_GENERATED' },
+  { label: 'Agent创建', value: 'AGENT_CREATED' }
+]
+
+const statusMap: Record<number, { label: string; type: 'success' | 'warning' | 'error' | 'info' | 'default' }> = {
+  0: { label: 'BACKLOG', type: 'default' },
+  1: { label: 'READY', type: 'info' },
+  2: { label: 'DOING', type: 'warning' },
+  3: { label: 'REVIEW', type: 'info' },
+  4: { label: 'DONE', type: 'success' },
+  5: { label: 'BLOCKED', type: 'error' }
 }
 
 const priorityMap: Record<number, { label: string; type: 'success' | 'warning' | 'error' | 'info' }> = {
-  0: { label: '低', type: 'success' },
-  1: { label: '中', type: 'info' },
-  2: { label: '高', type: 'warning' },
-  3: { label: '紧急', type: 'error' }
+  0: { label: 'LOW', type: 'success' },
+  1: { label: 'MEDIUM', type: 'info' },
+  2: { label: 'HIGH', type: 'warning' },
+  3: { label: 'URGENT', type: 'error' }
+}
+
+const sourceTypeMap: Record<string, { label: string; type: 'success' | 'warning' | 'error' | 'info' }> = {
+  'MANUAL': { label: '人工', type: 'info' },
+  'AI_GENERATED': { label: 'AI', type: 'warning' },
+  'AGENT_CREATED': { label: 'Agent', type: 'success' }
 }
 
 const columns: DataTableColumns<TaskVO> = [
@@ -108,25 +139,112 @@ const columns: DataTableColumns<TaskVO> = [
       return h(NTag, { type: p?.type, size: 'small' }, { default: () => p?.label || '未知' })
     }
   },
+  {
+    title: '来源',
+    key: 'sourceType',
+    width: 80,
+    render(row) {
+      const s = sourceTypeMap[row.sourceType || 'MANUAL']
+      return h(NTag, { type: s?.type, size: 'small' }, { default: () => s?.label || '人工' })
+    }
+  },
   { title: '截止日期', key: 'dueDate', width: 120 },
   { title: '创建时间', key: 'createTime', width: 170 },
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 300,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
+      const actions = []
+
+      // 根据状态显示不同操作按钮
+      if (row.status === 0 || row.status === 1) {
+        actions.push(
           h(NButton, {
             size: 'small',
-            onClick: () => handleEdit(row)
-          }, { default: () => '编辑' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该任务？'
-          })
-        ]
-      })
+            type: 'primary',
+            onClick: () => handleStart(row.id)
+          }, { default: () => '开始' })
+        )
+      }
+
+      if (row.status === 2) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            type: 'success',
+            onClick: () => handleComplete(row.id)
+          }, { default: () => '完成' }),
+          h(NButton, {
+            size: 'small',
+            type: 'info',
+            onClick: () => handleSubmitReview(row.id)
+          }, { default: () => '提交审核' }),
+          h(NButton, {
+            size: 'small',
+            type: 'warning',
+            onClick: () => handleBlock(row.id)
+          }, { default: () => '阻塞' })
+        )
+      }
+
+      if (row.status === 3) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            type: 'success',
+            onClick: () => handleApprove(row.id)
+          }, { default: () => '通过' }),
+          h(NButton, {
+            size: 'small',
+            type: 'error',
+            onClick: () => handleReject(row.id)
+          }, { default: () => '拒绝' })
+        )
+      }
+
+      if (row.status === 5) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            type: 'primary',
+            onClick: () => handleUnblock(row.id)
+          }, { default: () => '解除阻塞' })
+        )
+      }
+
+      // Agent 执行按钮（AI_GENERATED 任务）
+      if (row.sourceType === 'AI_GENERATED' && (row.status === 0 || row.status === 1)) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            type: 'warning',
+            onClick: () => handleAgentExecute(row.id)
+          }, { default: () => 'Agent执行' })
+        )
+      }
+
+      // 查看执行日志
+      actions.push(
+        h(NButton, {
+          size: 'small',
+          onClick: () => handleViewExecutions(row.id)
+        }, { default: () => '日志' })
+      )
+
+      // 编辑和删除
+      actions.push(
+        h(NButton, {
+          size: 'small',
+          onClick: () => handleEdit(row)
+        }, { default: () => '编辑' }),
+        h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+          trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+          default: () => '确认删除该任务？'
+        })
+      )
+
+      return h(NSpace, { size: 'small' }, { default: () => actions })
     }
   }
 ]
@@ -205,6 +323,100 @@ async function handleDelete(id: number) {
     loadTasks()
   } catch (error) {
     message.error('删除失败')
+  }
+}
+
+// 任务状态操作
+async function handleStart(id: number) {
+  try {
+    await startTask(id)
+    message.success('任务已开始')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+async function handleComplete(id: number) {
+  try {
+    await completeTask(id)
+    message.success('任务已完成')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+async function handleSubmitReview(id: number) {
+  try {
+    await submitReview(id)
+    message.success('已提交审核')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+async function handleApprove(id: number) {
+  try {
+    await approveTask(id)
+    message.success('审核通过')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+async function handleReject(id: number) {
+  try {
+    await rejectTask(id, '审核不通过')
+    message.success('已拒绝')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+async function handleBlock(id: number) {
+  try {
+    await blockTask(id, '手动阻塞')
+    message.success('任务已阻塞')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+async function handleUnblock(id: number) {
+  try {
+    await unblockTask(id)
+    message.success('已解除阻塞')
+    loadTasks()
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+// Agent 执行
+async function handleAgentExecute(id: number) {
+  try {
+    await executeAgentTask(id)
+    message.success('Agent 任务已触发')
+    loadTasks()
+  } catch (error) {
+    message.error('触发失败')
+  }
+}
+
+// 查看执行日志
+async function handleViewExecutions(id: number) {
+  currentTaskId.value = id
+  try {
+    const { data } = await getTaskExecutions(id)
+    executions.value = data.data || []
+    showExecutionModal.value = true
+  } catch (error) {
+    message.error('获取执行日志失败')
   }
 }
 
@@ -314,6 +526,33 @@ onMounted(() => {
         <NSpace justify="end">
           <NButton @click="showModal = false">取消</NButton>
           <NButton type="primary" @click="handleSubmit">确定</NButton>
+        </NSpace>
+      </template>
+    </NModal>
+
+    <!-- 执行日志弹窗 -->
+    <NModal
+      v-model:show="showExecutionModal"
+      title="执行日志"
+      preset="card"
+      style="width: 600px"
+    >
+      <div v-if="executions.length === 0" class="text-center py-4 text-gray-500">
+        暂无执行记录
+      </div>
+      <NTimeline v-else>
+        <NTimelineItem
+          v-for="item in executions"
+          :key="item.id"
+          :type="item.status === 0 ? 'success' : 'error'"
+          :title="item.action"
+          :content="item.content"
+          :time="item.createTime"
+        />
+      </NTimeline>
+      <template #footer>
+        <NSpace justify="end">
+          <NButton @click="showExecutionModal = false">关闭</NButton>
         </NSpace>
       </template>
     </NModal>

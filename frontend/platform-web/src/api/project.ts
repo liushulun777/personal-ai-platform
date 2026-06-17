@@ -49,15 +49,34 @@ export interface ProjectQueryParams extends PageQuery {
 export interface TaskVO {
   id: number
   projectId: number
+  parentTaskId: number
   title: string
   description: string
   status: number
   priority: number
+  sourceType: string
   assigneeId: number
   reporterId: number
+  blockedReason: string
   dueDate: string
   createTime: string
   updateTime: string
+}
+
+/** 任务执行记录 */
+export interface TaskExecutionVO {
+  id: number
+  taskId: number
+  executorType: string
+  executorId: number
+  action: string
+  content: string
+  prompt: string
+  result: string
+  status: number
+  errorMsg: string
+  duration: number
+  createTime: string
 }
 
 /** 任务创建参数 */
@@ -162,6 +181,11 @@ export function deleteProject(id: number) {
   return request.delete<ApiResult<void>>(`/project/projects/${id}`)
 }
 
+/** AI拆分任务 */
+export function aiDecomposeTasks(id: number, content: string) {
+  return request.post<ApiResult<number[]>>(`/project/projects/${id}/ai-decompose`, { content })
+}
+
 // ========== 任务 API ==========
 
 /** 分页查询任务 */
@@ -187,6 +211,55 @@ export function updateTask(data: TaskUpdateParams) {
 /** 删除任务 */
 export function deleteTask(id: number) {
   return request.delete<ApiResult<void>>(`/project/tasks/${id}`)
+}
+
+// ========== 任务状态流转 API ==========
+
+/** 开始任务 (BACKLOG/READY -> DOING) */
+export function startTask(id: number) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/start`)
+}
+
+/** 完成任务 (DOING/REVIEW -> DONE) */
+export function completeTask(id: number) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/complete`)
+}
+
+/** 提交审核 (DOING -> REVIEW) */
+export function submitReview(id: number) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/submit-review`)
+}
+
+/** 审核通过 (REVIEW -> DONE) */
+export function approveTask(id: number) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/approve`)
+}
+
+/** 审核拒绝 (REVIEW -> DOING) */
+export function rejectTask(id: number, reason: string) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/reject?reason=${reason}`)
+}
+
+/** 阻塞任务 (DOING -> BLOCKED) */
+export function blockTask(id: number, reason: string) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/block?reason=${reason}`)
+}
+
+/** 解除阻塞 (BLOCKED -> DOING) */
+export function unblockTask(id: number) {
+  return request.post<ApiResult<void>>(`/project/tasks/${id}/unblock`)
+}
+
+/** 获取任务执行记录 */
+export function getTaskExecutions(id: number) {
+  return request.get<ApiResult<TaskExecutionVO[]>>(`/project/tasks/${id}/executions`)
+}
+
+// ========== Agent 执行 API ==========
+
+/** 触发 Agent 执行任务 */
+export function executeAgentTask(taskId: number) {
+  return request.post<ApiResult<void>>(`/agent/tasks/${taskId}/execute`)
 }
 
 // ========== Bug API ==========

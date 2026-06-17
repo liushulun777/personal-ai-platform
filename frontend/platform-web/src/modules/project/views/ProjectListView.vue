@@ -19,15 +19,20 @@ import {
   getProjectPage,
   createProject,
   updateProject,
-  deleteProject
+  deleteProject,
+  aiDecomposeTasks
 } from '@/api/project'
 import type { ProjectVO, ProjectCreateParams, ProjectUpdateParams } from '@/api/project'
 
 const message = useMessage()
 const loading = ref(false)
 const showModal = ref(false)
+const showAiModal = ref(false)
 const isEdit = ref(false)
 const formRef = ref<FormInst | null>(null)
+const currentProjectId = ref<number | null>(null)
+const aiContent = ref('')
+const aiLoading = ref(false)
 
 const queryParams = ref({
   name: '',
@@ -112,10 +117,16 @@ const columns: DataTableColumns<ProjectVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 280,
     render(row) {
       return h(NSpace, { size: 'small' }, {
         default: () => [
+          // AI 拆分任务按钮（规划中状态显示）
+          row.status === 0 ? h(NButton, {
+            size: 'small',
+            type: 'warning',
+            onClick: () => handleAiDecompose(row)
+          }, { default: () => 'AI拆分任务' }) : null,
           h(NButton, {
             size: 'small',
             onClick: () => handleEdit(row)
@@ -124,7 +135,7 @@ const columns: DataTableColumns<ProjectVO> = [
             trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
             default: () => '确认删除该项目？'
           })
-        ]
+        ].filter(Boolean)
       })
     }
   }
@@ -178,6 +189,28 @@ function handleEdit(row: ProjectVO) {
     endDate: row.endDate
   }
   showModal.value = true
+}
+
+// AI 拆分任务
+function handleAiDecompose(row: ProjectVO) {
+  currentProjectId.value = row.id
+  aiContent.value = row.description || ''
+  showAiModal.value = true
+}
+
+async function handleAiSubmit() {
+  if (!currentProjectId.value) return
+  aiLoading.value = true
+  try {
+    const { data } = await aiDecomposeTasks(currentProjectId.value, aiContent.value)
+    message.success(`AI 拆分完成，创建了 ${data.data.length} 个任务`)
+    showAiModal.value = false
+    loadProjects()
+  } catch (error) {
+    message.error('AI 拆分任务失败')
+  } finally {
+    aiLoading.value = false
+  }
 }
 
 async function handleSubmit() {
@@ -313,6 +346,34 @@ onMounted(() => {
         <NSpace justify="end">
           <NButton @click="showModal = false">取消</NButton>
           <NButton type="primary" @click="handleSubmit">确定</NButton>
+        </NSpace>
+      </template>
+    </NModal>
+
+    <!-- AI 拆分任务弹窗 -->
+    <NModal
+      v-model:show="showAiModal"
+      title="AI 拆分任务"
+      preset="card"
+      style="width: 600px"
+    >
+      <div class="mb-4">
+        <p class="text-sm text-gray-500 mb-2">
+          AI 将根据项目描述自动拆分任务。您可以修改需求描述后再执行拆分。
+        </p>
+        <NInput
+          v-model:value="aiContent"
+          type="textarea"
+          placeholder="请输入项目需求描述，AI 将自动拆分为多个子任务"
+          :rows="8"
+        />
+      </div>
+      <template #footer>
+        <NSpace justify="end">
+          <NButton @click="showAiModal = false">取消</NButton>
+          <NButton type="primary" :loading="aiLoading" @click="handleAiSubmit">
+            开始拆分
+          </NButton>
         </NSpace>
       </template>
     </NModal>

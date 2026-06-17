@@ -35,4 +35,49 @@ public interface TaskService {
      * 删除任务
      */
     void delete(Long id);
+
+    /**
+     * 开始任务 (BACKLOG/READY -> DOING)
+     */
+    void start(Long id);
+
+    /**
+     * 完成任务 (DOING/REVIEW -> DONE)
+     */
+    void complete(Long id);
+
+    /**
+     * 分配任务
+     */
+    void assign(Long id, Long assigneeId);
+
+    /**
+     * 阻塞任务 (DOING -> BLOCKED)
+     */
+    void block(Long id, String reason);
+
+    /**
+     * 移动任务状态
+     */
+    void move(Long id, Integer targetStatus);
+
+    /**
+     * 提交审核 (DOING -> REVIEW)
+     */
+    void submitReview(Long id);
+
+    /**
+     * 审核通过 (REVIEW -> DONE)
+     */
+    void approve(Long id);
+
+    /**
+     * 审核拒绝 (REVIEW -> DOING)
+     */
+    void reject(Long id, String reason);
+
+    /**
+     * 解除阻塞 (BLOCKED -> DOING)
+     */
+    void unblock(Long id);
 }

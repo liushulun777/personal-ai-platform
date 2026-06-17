@@ -13,6 +13,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 项目管理控制器
  */
@@ -57,5 +60,16 @@ public class ProjectController {
     public Result<Void> delete(@PathVariable Long id) {
         projectService.delete(id);
         return Result.success();
+    }
+
+    @Operation(summary = "AI拆分任务")
+    @PostMapping("/{id}/ai-decompose")
+    public Result<List<Long>> aiDecomposeTasks(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String content = body.get("content");
+        if (content == null || content.isEmpty()) {
+            content = "请根据项目描述拆分任务";
+        }
+        List<Long> taskIds = projectService.aiDecomposeTasks(id, content);
+        return Result.success(taskIds);
     }
 }

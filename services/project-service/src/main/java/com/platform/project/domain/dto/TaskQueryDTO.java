@@ -22,12 +22,12 @@ public class TaskQueryDTO extends PageQuery {
     private String title;
 
     /**
-     * 状态
+     * 状态: 0-BACKLOG, 1-READY, 2-DOING, 3-REVIEW, 4-DONE, 5-BLOCKED
      */
     private Integer status;
 
     /**
-     * 优先级
+     * 优先级: 0-LOW, 1-MEDIUM, 2-HIGH, 3-URGENT
      */
     private Integer priority;
 
@@ -35,4 +35,9 @@ public class TaskQueryDTO extends PageQuery {
      * 执行人ID
      */
     private Long assigneeId;
+
+    /**
+     * 来源类型: MANUAL, AI_GENERATED, AGENT_CREATED
+     */
+    private String sourceType;
 }

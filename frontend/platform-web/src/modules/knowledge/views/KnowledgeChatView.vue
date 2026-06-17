@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { marked } from 'marked'
 import {
   NCard,
   NInput,
@@ -19,6 +20,11 @@ const loading = ref(false)
 const question = ref('')
 const answer = ref('')
 const sources = ref<SourceInfo[]>([])
+
+const renderedAnswer = computed(() => {
+  if (!answer.value) return ''
+  return marked.parse(answer.value) as string
+})
 
 async function handleQuery() {
   if (!question.value.trim()) {
@@ -81,7 +87,7 @@ function handleKeydown(e: KeyboardEvent) {
     <!-- 回答区域 -->
     <div v-if="answer && !loading">
       <NCard title="回答" class="mb-6">
-        <div class="whitespace-pre-wrap" style="color: var(--text-primary)">{{ answer }}</div>
+        <div class="markdown-body" v-html="renderedAnswer"></div>
       </NCard>
 
       <!-- 来源信息 -->
@@ -113,3 +119,76 @@ function handleKeydown(e: KeyboardEvent) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.markdown-body {
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4) {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdown-body :deep(p) {
+  margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 0.25em;
+}
+
+.markdown-body :deep(code) {
+  background: var(--code-bg, rgba(0, 0, 0, 0.06));
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.markdown-body :deep(pre) {
+  background: var(--code-bg, rgba(0, 0, 0, 0.06));
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 3px solid var(--primary-color, #2080f0);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 0.75em;
+  color: var(--text-secondary);
+}
+
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid var(--border-color, #e0e0e6);
+  padding: 0.5em 0.75em;
+}
+
+.markdown-body :deep(th) {
+  background: var(--code-bg, rgba(0, 0, 0, 0.06));
+}
+</style>

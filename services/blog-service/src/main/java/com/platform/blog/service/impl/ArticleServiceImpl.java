@@ -28,6 +28,8 @@ import com.platform.common.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -178,10 +180,15 @@ public class ArticleServiceImpl implements ArticleService {
             }
         }
 
-        // 如果文章已发布，发布更新事件
+        // 如果文章已发布，事务提交后发送更新事件
         if (article.getStatus() == 1) {
             ArticleEvent event = buildArticleEvent(article);
-            articleEventPublisher.publishArticleUpdateEvent(event);
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    articleEventPublisher.publishArticleUpdateEvent(event);
+                }
+            });
         }
     }
 
@@ -202,8 +209,13 @@ public class ArticleServiceImpl implements ArticleService {
         // 删除文章
         articleMapper.deleteById(id);
 
-        // 发布文章删除事件
-        articleEventPublisher.publishArticleDeleteEvent(id);
+        // 事务提交后再发送删除事件
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                articleEventPublisher.publishArticleDeleteEvent(id);
+            }
+        });
     }
 
     @Override
@@ -218,9 +230,14 @@ public class ArticleServiceImpl implements ArticleService {
         article.setPublishTime(LocalDateTime.now());
         articleMapper.updateById(article);
 
-        // 发布文章发布事件
+        // 事务提交后再发送 Kafka 事件，避免 Kafka 阻塞请求
         ArticleEvent event = buildArticleEvent(article);
-        articleEventPublisher.publishArticlePublishEvent(event);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                articleEventPublisher.publishArticlePublishEvent(event);
+            }
+        });
     }
 
     @Override

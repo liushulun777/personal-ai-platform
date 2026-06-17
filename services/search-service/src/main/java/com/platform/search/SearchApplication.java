@@ -8,8 +8,11 @@ import org.springframework.kafka.annotation.EnableKafka;
 
 /**
  * 搜索服务启动类
+ * 排除 Spring AI OpenAI 自动配置（使用自定义 EmbeddingModelConfig）
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
+})
 @EnableDiscoveryClient
 @EnableKafka
 @ComponentScan(basePackages = {"com.platform.search", "com.platform.common"})

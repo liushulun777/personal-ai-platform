@@ -24,12 +24,12 @@ public interface EmbeddingMapper extends BaseMapper<Embedding> {
      */
     @Select("<script>" +
             "SELECT e.id, e.chunk_id, e.document_id, e.create_time, " +
-            "(1 - (e.embedding &lt;= &gt; #{embeddingStr}::vector)) as similarity " +
+            "(1 - (e.embedding <![CDATA[<=>]]> #{embeddingStr}::vector)) as similarity " +
             "FROM kb_embedding e " +
             "<where>" +
             "  <if test='documentId != null'>AND e.document_id = #{documentId}</if>" +
             "</where>" +
-            "ORDER BY e.embedding &lt;= &gt; #{embeddingStr}::vector " +
+            "ORDER BY e.embedding <![CDATA[<=>]]> #{embeddingStr}::vector " +
             "LIMIT #{limit}" +
             "</script>")
     List<Embedding> searchSimilar(@Param("embeddingStr") String embeddingStr,

@@ -7,7 +7,7 @@ services:
 
   # PostgreSQL 17 (with pgvector)
   postgres:
-    image: pgvector/pgvector:pg17-alpine
+    image: docker.io/pgvector/pgvector:pg17
     container_name: platform-postgres
     ports:
       - "5432:5432"

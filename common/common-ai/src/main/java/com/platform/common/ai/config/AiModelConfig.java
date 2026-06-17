@@ -16,14 +16,29 @@ import java.util.Map;
 public class AiModelConfig {
 
     /**
-     * 默认模型名称
+     * 默认模型名称（用于 chat 等通用场景）
      */
     private String defaultModel = "mimo";
+
+    /**
+     * 嵌入模型 provider 名称（用于 embedding 场景）
+     * 如果未配置，则使用 defaultModel
+     */
+    private String embeddingProvider;
 
     /**
      * 模型配置映射
      */
     private Map<String, ModelProperties> config = new HashMap<>();
+
+    /**
+     * 获取嵌入模型配置
+     */
+    public ModelProperties getEmbeddingModelProperties() {
+        String provider = (embeddingProvider != null && !embeddingProvider.isEmpty())
+                ? embeddingProvider : defaultModel;
+        return config.get(provider);
+    }
 
     /**
      * 模型属性

@@ -74,9 +74,13 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: agent-service
+          uri: lb://agent-service
+          predicates:
+            - Path=/agent/**
+          filters:
+            - StripPrefix=1
+
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
 
-logging:
-  level:
-    com.platform.gateway: debug

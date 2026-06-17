@@ -24,10 +24,10 @@ public class EmbeddingModelConfig {
 
     @Bean
     public EmbeddingModel embeddingModel() {
-        // 使用默认模型配置
-        AiModelConfig.ModelProperties properties = aiModelConfig.getConfig().get(aiModelConfig.getDefaultModel());
+        // 使用嵌入专用模型配置（未配置则回退到默认模型）
+        AiModelConfig.ModelProperties properties = aiModelConfig.getEmbeddingModelProperties();
         if (properties == null) {
-            throw new IllegalArgumentException("未找到默认模型配置: " + aiModelConfig.getDefaultModel());
+            throw new IllegalArgumentException("未找到嵌入模型配置, embeddingProvider: " + aiModelConfig.getEmbeddingProvider());
         }
 
         log.info("创建 EmbeddingModel, baseUrl: {}, model: {}", properties.getBaseUrl(), properties.getModel());

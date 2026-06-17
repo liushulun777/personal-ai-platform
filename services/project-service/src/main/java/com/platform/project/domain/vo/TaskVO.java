@@ -14,12 +14,15 @@ public class TaskVO {
 
     private Long id;
     private Long projectId;
+    private Long parentTaskId;
     private String title;
     private String description;
     private Integer status;
     private Integer priority;
+    private String sourceType;
     private Long assigneeId;
     private Long reporterId;
+    private String blockedReason;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dueDate;

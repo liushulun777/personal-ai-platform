@@ -23,6 +23,13 @@ spring:
       discovery:
         server-addr: 172.18.0.34:8848
         fail-fast: false
+  kafka:
+    bootstrap-servers: 172.18.0.34:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -41,6 +48,12 @@ sa-token:
   is-read-header: true
   is-read-cookie: false
 
-logging:
-  level:
-    com.platform.project: debug
+# AI 模型配置
+ai:
+  models:
+    default-model: mimo
+    config:
+      mimo:
+        base-url: https://token-plan-cn.xiaomimimo.com
+        api-key: tp-cnq4bihy8ykip42l161tykqpqtlycb8ne8l4pb4d384v2ppg
+        model: mimo-v2.5-pro

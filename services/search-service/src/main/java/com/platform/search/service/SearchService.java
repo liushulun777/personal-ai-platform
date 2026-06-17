@@ -13,12 +13,21 @@ import java.util.List;
 public interface SearchService {
 
     /**
-     * 搜索文章
+     * 搜索文章（支持多维筛选 + 语义搜索）
      *
      * @param searchDTO 搜索条件
      * @return 搜索结果
      */
     PageResult<ArticleSearchVO> searchArticles(ArticleSearchDTO searchDTO);
+
+    /**
+     * 语义搜索
+     * 使用 pgvector 向量相似度搜索，支持作者、日期范围、标签筛选
+     *
+     * @param searchDTO 搜索条件（必须包含 keyword）
+     * @return 按语义相似度排序的搜索结果
+     */
+    PageResult<ArticleSearchVO> semanticSearch(ArticleSearchDTO searchDTO);
 
     /**
      * 索引文章

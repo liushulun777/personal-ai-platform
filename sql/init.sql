@@ -457,7 +457,7 @@ CREATE TABLE kb_embedding (
     id              BIGINT          PRIMARY KEY,
     chunk_id        BIGINT          NOT NULL,
     document_id     BIGINT          NOT NULL,
-    embedding       vector(1024),
+    embedding       vector(768),
     create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -465,7 +465,40 @@ CREATE INDEX idx_embedding_chunk ON kb_embedding(chunk_id);
 CREATE INDEX idx_embedding_document ON kb_embedding(document_id);
 
 COMMENT ON TABLE kb_embedding IS '知识库向量嵌入表';
-COMMENT ON COLUMN kb_embedding.embedding IS '向量嵌入 (pgvector, 维度1024)';
+COMMENT ON COLUMN kb_embedding.embedding IS '向量嵌入 (pgvector, 维度768)';
+
+-- ============================================================
+-- 文章分块向量表（阶段2：跨库数据联查与多维检索）
+-- ============================================================
+
+-- 文章分块向量表
+CREATE TABLE biz_article_chunk (
+    id              BIGINT          PRIMARY KEY,
+    article_id      BIGINT          NOT NULL,
+    chunk_index     INT             NOT NULL,
+    content         TEXT            NOT NULL,
+    embedding       vector(768),
+    author_id       BIGINT          NOT NULL,
+    category_id     BIGINT,
+    tags            VARCHAR(500),
+    publish_time    TIMESTAMP,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_article_chunk_article ON biz_article_chunk(article_id);
+CREATE INDEX idx_article_chunk_author ON biz_article_chunk(author_id);
+CREATE INDEX idx_article_chunk_category ON biz_article_chunk(category_id);
+CREATE INDEX idx_article_chunk_publish_time ON biz_article_chunk(publish_time);
+
+COMMENT ON TABLE biz_article_chunk IS '文章分块向量表';
+COMMENT ON COLUMN biz_article_chunk.article_id IS '文章ID';
+COMMENT ON COLUMN biz_article_chunk.chunk_index IS '分块序号';
+COMMENT ON COLUMN biz_article_chunk.content IS '分块内容';
+COMMENT ON COLUMN biz_article_chunk.embedding IS '向量嵌入 (pgvector, 维度768)';
+COMMENT ON COLUMN biz_article_chunk.author_id IS '作者ID（冗余字段，用于多维筛选）';
+COMMENT ON COLUMN biz_article_chunk.category_id IS '分类ID（冗余字段，用于多维筛选）';
+COMMENT ON COLUMN biz_article_chunk.tags IS '标签列表JSON（冗余字段，用于多维筛选）';
+COMMENT ON COLUMN biz_article_chunk.publish_time IS '发布时间（冗余字段，用于日期范围筛选）';
 
 -- ============================================================
 -- 项目管理模块
@@ -500,17 +533,20 @@ COMMENT ON COLUMN pm_project.owner_id IS '负责人ID';
 COMMENT ON COLUMN pm_project.start_date IS '开始日期';
 COMMENT ON COLUMN pm_project.end_date IS '结束日期';
 
--- 任务表
+-- 任务表（Phase 1: 状态机升级 + 来源标识）
 CREATE TABLE pm_task (
     id              BIGINT          PRIMARY KEY,
     project_id      BIGINT          NOT NULL,
+    parent_task_id  BIGINT,
     title           VARCHAR(200)    NOT NULL,
     description     TEXT,
     status          SMALLINT        NOT NULL DEFAULT 0,
     priority        SMALLINT        NOT NULL DEFAULT 1,
+    source_type     VARCHAR(20)     NOT NULL DEFAULT 'MANUAL',
     assignee_id     BIGINT,
     reporter_id     BIGINT,
     due_date        DATE,
+    blocked_reason  TEXT,
     create_by       BIGINT,
     create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_by       BIGINT,
@@ -521,16 +557,86 @@ CREATE TABLE pm_task (
 CREATE INDEX idx_task_project ON pm_task(project_id);
 CREATE INDEX idx_task_assignee ON pm_task(assignee_id);
 CREATE INDEX idx_task_status ON pm_task(status);
+CREATE INDEX idx_task_parent ON pm_task(parent_task_id);
 
 COMMENT ON TABLE pm_task IS '任务表';
 COMMENT ON COLUMN pm_task.project_id IS '所属项目ID';
+COMMENT ON COLUMN pm_task.parent_task_id IS '父任务ID（子任务支持）';
 COMMENT ON COLUMN pm_task.title IS '任务标题';
 COMMENT ON COLUMN pm_task.description IS '任务描述';
-COMMENT ON COLUMN pm_task.status IS '状态: 0-待办, 1-进行中, 2-已完成, 3-已关闭';
-COMMENT ON COLUMN pm_task.priority IS '优先级: 0-低, 1-中, 2-高, 3-紧急';
+COMMENT ON COLUMN pm_task.status IS '状态: 0-BACKLOG, 1-READY, 2-DOING, 3-REVIEW, 4-DONE, 5-BLOCKED';
+COMMENT ON COLUMN pm_task.priority IS '优先级: 0-LOW, 1-MEDIUM, 2-HIGH, 3-URGENT';
+COMMENT ON COLUMN pm_task.source_type IS '来源: MANUAL-人工创建, AI_GENERATED-AI拆解生成, AGENT_CREATED-Agent自动创建';
 COMMENT ON COLUMN pm_task.assignee_id IS '执行人ID';
 COMMENT ON COLUMN pm_task.reporter_id IS '报告人ID';
 COMMENT ON COLUMN pm_task.due_date IS '截止日期';
+COMMENT ON COLUMN pm_task.blocked_reason IS '阻塞原因';
+
+-- 任务执行记录表（Phase 2: AI执行追踪系统）
+CREATE TABLE pm_task_execution (
+    id              BIGINT          PRIMARY KEY,
+    task_id         BIGINT          NOT NULL,
+    executor_type   VARCHAR(20),
+    executor_id     BIGINT,
+    action          VARCHAR(50)     NOT NULL,
+    content         TEXT,
+    prompt          TEXT,
+    result          TEXT,
+    status          SMALLINT        NOT NULL DEFAULT 0,
+    error_msg       TEXT,
+    duration        BIGINT,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_execution_task ON pm_task_execution(task_id);
+CREATE INDEX idx_execution_executor ON pm_task_execution(executor_id);
+CREATE INDEX idx_execution_action ON pm_task_execution(action);
+
+COMMENT ON TABLE pm_task_execution IS '任务执行记录表';
+COMMENT ON COLUMN pm_task_execution.task_id IS '任务ID';
+COMMENT ON COLUMN pm_task_execution.executor_type IS '执行者类型: AI, HUMAN, AGENT';
+COMMENT ON COLUMN pm_task_execution.executor_id IS '执行者ID';
+COMMENT ON COLUMN pm_task_execution.action IS '动作: CREATE, START, UPDATE, COMPLETE, COMMENT, FAIL, BLOCK, ASSIGN, REVIEW';
+COMMENT ON COLUMN pm_task_execution.content IS '执行内容';
+COMMENT ON COLUMN pm_task_execution.prompt IS 'AI执行的Prompt';
+COMMENT ON COLUMN pm_task_execution.result IS 'AI执行的结果';
+COMMENT ON COLUMN pm_task_execution.status IS '状态: 0-成功, 1-失败';
+COMMENT ON COLUMN pm_task_execution.error_msg IS '错误信息';
+COMMENT ON COLUMN pm_task_execution.duration IS '执行耗时(毫秒)';
+
+-- 任务评论表（Phase 7: 任务评论系统）
+CREATE TABLE pm_task_comment (
+    id              BIGINT          PRIMARY KEY,
+    task_id         BIGINT          NOT NULL,
+    user_id         BIGINT          NOT NULL,
+    content         TEXT            NOT NULL,
+    is_ai_summary   SMALLINT        NOT NULL DEFAULT 0,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted         INT             NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_comment_task ON pm_task_comment(task_id);
+
+COMMENT ON TABLE pm_task_comment IS '任务评论表';
+COMMENT ON COLUMN pm_task_comment.task_id IS '任务ID';
+COMMENT ON COLUMN pm_task_comment.user_id IS '评论者ID';
+COMMENT ON COLUMN pm_task_comment.content IS '评论内容';
+COMMENT ON COLUMN pm_task_comment.is_ai_summary IS '是否AI总结: 0-否, 1-是';
+
+-- 任务依赖关系表（Phase 7: 任务依赖关系）
+CREATE TABLE pm_task_dependency (
+    id              BIGINT          PRIMARY KEY,
+    task_id         BIGINT          NOT NULL,
+    dependency_task_id BIGINT       NOT NULL,
+    create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX uk_task_dependency ON pm_task_dependency(task_id, dependency_task_id);
+
+COMMENT ON TABLE pm_task_dependency IS '任务依赖关系表';
+COMMENT ON COLUMN pm_task_dependency.task_id IS '任务ID';
+COMMENT ON COLUMN pm_task_dependency.dependency_task_id IS '依赖的任务ID';
 
 -- Bug表
 CREATE TABLE pm_bug (

@@ -52,6 +52,3 @@ sa-token:
   is-read-header: true
   is-read-cookie: false
 
-logging:
-  level:
-    com.platform.file: debug

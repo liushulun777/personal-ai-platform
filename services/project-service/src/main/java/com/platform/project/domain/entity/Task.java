@@ -21,6 +21,11 @@ public class Task extends BaseEntity {
     private Long projectId;
 
     /**
+     * 父任务ID（子任务支持）
+     */
+    private Long parentTaskId;
+
+    /**
      * 任务标题
      */
     private String title;
@@ -31,14 +36,19 @@ public class Task extends BaseEntity {
     private String description;
 
     /**
-     * 状态: 0-待办, 1-进行中, 2-已完成, 3-已关闭
+     * 状态: 0-BACKLOG, 1-READY, 2-DOING, 3-REVIEW, 4-DONE, 5-BLOCKED
      */
     private Integer status;
 
     /**
-     * 优先级: 0-低, 1-中, 2-高, 3-紧急
+     * 优先级: 0-LOW, 1-MEDIUM, 2-HIGH, 3-URGENT
      */
     private Integer priority;
+
+    /**
+     * 来源: MANUAL, AI_GENERATED, AGENT_CREATED
+     */
+    private String sourceType;
 
     /**
      * 执行人ID
@@ -54,4 +64,9 @@ public class Task extends BaseEntity {
      * 截止日期
      */
     private LocalDate dueDate;
+
+    /**
+     * 阻塞原因
+     */
+    private String blockedReason;
 }

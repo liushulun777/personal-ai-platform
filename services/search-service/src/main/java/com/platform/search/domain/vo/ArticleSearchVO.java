@@ -87,6 +87,12 @@ public class ArticleSearchVO {
     private Float score;
 
     /**
+     * 语义相似度分数
+     */
+    @Schema(description = "语义相似度分数")
+    private Double semanticScore;
+
+    /**
      * 发布时间
      */
     @Schema(description = "发布时间")

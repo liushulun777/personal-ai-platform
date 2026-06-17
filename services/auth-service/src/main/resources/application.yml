@@ -24,7 +24,7 @@ spring:
         server-addr: 172.18.0.34:8848
         fail-fast: false
   kafka:
-    bootstrap-servers: 172.18.0.34:9092
+    bootstrap-servers: 172.18.0.34:29092
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -55,6 +55,3 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
-logging:
-  level:
-    com.platform.auth: debug

@@ -23,8 +23,14 @@ public class TaskUpdateDTO {
     @Size(max = 5000, message = "任务描述不能超过5000个字符")
     private String description;
 
+    /**
+     * 状态: 0-BACKLOG, 1-READY, 2-DOING, 3-REVIEW, 4-DONE, 5-BLOCKED
+     */
     private Integer status;
 
+    /**
+     * 优先级: 0-LOW, 1-MEDIUM, 2-HIGH, 3-URGENT
+     */
     private Integer priority;
 
     private Long assigneeId;

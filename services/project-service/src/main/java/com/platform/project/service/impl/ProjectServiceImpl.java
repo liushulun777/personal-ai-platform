@@ -7,12 +7,14 @@ import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.ResultCode;
 import com.platform.common.security.util.SecurityUtils;
 import com.platform.project.convert.ProjectConvert;
+import com.platform.project.domain.dto.AiTaskDecomposeDTO;
 import com.platform.project.domain.dto.ProjectCreateDTO;
 import com.platform.project.domain.dto.ProjectQueryDTO;
 import com.platform.project.domain.dto.ProjectUpdateDTO;
 import com.platform.project.domain.entity.Project;
 import com.platform.project.domain.vo.ProjectVO;
 import com.platform.project.mapper.ProjectMapper;
+import com.platform.project.service.AiTaskService;
 import com.platform.project.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectMapper projectMapper;
     private final ProjectConvert projectConvert;
+    private final AiTaskService aiTaskService;
 
     @Override
     public PageResult<ProjectVO> page(ProjectQueryDTO queryDTO) {
@@ -91,5 +94,29 @@ public class ProjectServiceImpl implements ProjectService {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "项目不存在");
         }
         projectMapper.deleteById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<Long> aiDecomposeTasks(Long projectId, String content) {
+        // 验证项目是否存在
+        Project project = projectMapper.selectById(projectId);
+        if (project == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "项目不存在");
+        }
+
+        // 调用 AI 任务拆解服务
+        AiTaskDecomposeDTO dto = new AiTaskDecomposeDTO();
+        dto.setProjectId(projectId);
+        dto.setContent(content);
+
+        List<Long> taskIds = aiTaskService.decomposeAndCreate(dto);
+
+        // 更新项目状态为进行中 (1)
+        project.setStatus(1);
+        projectMapper.updateById(project);
+
+        log.info("AI 拆分任务完成, projectId: {}, taskCount: {}", projectId, taskIds.size());
+        return taskIds;
     }
 }

@@ -25,12 +25,21 @@ public class SearchController {
     private final SearchService searchService;
 
     /**
-     * 搜索文章
+     * 搜索文章（全文搜索 + 多维筛选）
      */
-    @Operation(summary = "搜索文章", description = "根据关键词、分类、标签等条件搜索文章")
+    @Operation(summary = "搜索文章", description = "根据关键词、分类、标签、作者、日期范围等条件搜索文章")
     @PostMapping("/articles")
     public Result<PageResult<ArticleSearchVO>> searchArticles(@RequestBody ArticleSearchDTO searchDTO) {
         return Result.success(searchService.searchArticles(searchDTO));
+    }
+
+    /**
+     * 语义搜索（向量相似度 + 多维筛选）
+     */
+    @Operation(summary = "语义搜索", description = "使用向量相似度搜索，支持作者、日期范围、标签筛选")
+    @PostMapping("/articles/semantic")
+    public Result<PageResult<ArticleSearchVO>> semanticSearch(@RequestBody ArticleSearchDTO searchDTO) {
+        return Result.success(searchService.semanticSearch(searchDTO));
     }
 
     /**

@@ -21,6 +21,7 @@ public interface ArticleSearchConvert {
      */
     @Mapping(target = "contentFragment", ignore = true)
     @Mapping(target = "score", ignore = true)
+    @Mapping(target = "semanticScore", ignore = true)
     ArticleSearchVO documentToVO(ArticleDocument document);
 
     /**

@@ -4,6 +4,7 @@ import com.platform.common.ai.config.ChatModelFactory;
 import com.platform.common.ai.service.AiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -37,7 +38,7 @@ public class AiServiceImpl implements AiService {
     @Override
     public String chat(String prompt, String context, String modelName) {
         try {
-            List<org.springframework.ai.chat.messages.Message> messages = buildMessages(prompt, context);
+            List<Message> messages = buildMessages(prompt, context);
 
             // 获取对应的 ChatModel
             ChatModel chatModel = chatModelFactory.getChatModel(modelName);

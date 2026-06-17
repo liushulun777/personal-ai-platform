@@ -25,5 +25,6 @@
         <module>knowledge-service</module>
         <module>project-service</module>
         <module>mcp-service</module>
+        <module>agent-service</module>
     </modules>
 </project>

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.platform.knowledge.typehandler.VectorTypeHandler;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -32,6 +33,7 @@ public class Embedding implements Serializable {
     /**
      * 向量嵌入（通过 VectorTypeHandler 映射 pgvector）
      */
+    @TableField(typeHandler = VectorTypeHandler.class)
     private float[] embedding;
 
     /**

@@ -107,12 +107,32 @@ public class McpToolServiceImpl implements McpToolService {
 
     // ==================== 终端工具 ====================
 
+    /**
+     * 检测操作系统是否为 Windows
+     */
+    private boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
     @Override
     public String exec(String workDir, String command) {
         try {
             log.info("执行命令: {} (workDir: {})", command, workDir);
-            ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
-            pb.directory(new File(workDir));
+
+            ProcessBuilder pb;
+            if (isWindows()) {
+                // Windows 环境使用 cmd
+                pb = new ProcessBuilder("cmd", "/c", command);
+            } else {
+                // Linux/Mac 环境使用 bash
+                pb = new ProcessBuilder("bash", "-c", command);
+            }
+
+            // 设置工作目录
+            if (workDir != null && !workDir.equals(".")) {
+                pb.directory(new File(workDir));
+            }
+
             pb.redirectErrorStream(true);
             Process process = pb.start();
 

@@ -19,9 +19,10 @@ import {
   getBugPage,
   createBug,
   updateBug,
-  deleteBug
+  deleteBug,
+  getProjectPage
 } from '@/api/project'
-import type { BugVO, BugCreateParams, BugUpdateParams } from '@/api/project'
+import type { BugVO, BugCreateParams, BugUpdateParams, ProjectVO } from '@/api/project'
 
 const message = useMessage()
 const loading = ref(false)
@@ -30,12 +31,14 @@ const isEdit = ref(false)
 const formRef = ref<FormInst | null>(null)
 
 const queryParams = ref({
+  projectId: null as number | null,
   title: '',
   severity: null as number | null,
   status: null as number | null
 })
 
 const bugs = ref<BugVO[]>([])
+const projects = ref<ProjectVO[]>([])
 const pagination = ref({
   page: 1,
   pageSize: 10,
@@ -44,8 +47,8 @@ const pagination = ref({
   pageSizes: [10, 20, 50]
 })
 
-const formData = ref<BugCreateParams & { id?: number }>({
-  projectId: 0,
+const formData = ref<BugCreateParams & { id?: number; status?: number }>({
+  projectId: undefined,
   title: '',
   description: '',
   severity: 1,
@@ -54,7 +57,6 @@ const formData = ref<BugCreateParams & { id?: number }>({
 })
 
 const formRules = {
-  projectId: [{ required: true, message: '请输入项目ID', trigger: 'blur' }],
   title: [{ required: true, message: '请输入Bug标题', trigger: 'blur' }]
 }
 
@@ -88,9 +90,32 @@ const statusMap: Record<number, { label: string; type: 'success' | 'warning' | '
   4: { label: '已关闭', type: 'info' }
 }
 
+// 项目选项
+const projectOptions = ref<{ label: string; value: number }[]>([])
+
+// 获取项目名称
+function getProjectName(projectId: number): string {
+  const project = projects.value.find(p => p.id === projectId)
+  return project ? project.name : String(projectId)
+}
+
 const columns: DataTableColumns<BugVO> = [
-  { title: 'ID', key: 'id', width: 80 },
-  { title: '项目ID', key: 'projectId', width: 80 },
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    render(_row, index) {
+      return h('span', {}, { default: () => (pagination.value.page - 1) * pagination.value.pageSize + index + 1 })
+    }
+  },
+  {
+    title: '所属项目',
+    key: 'projectId',
+    width: 120,
+    render(row) {
+      return h('span', {}, { default: () => getProjectName(row.projectId) })
+    }
+  },
   { title: '标题', key: 'title', width: 200, ellipsis: { tooltip: true } },
   {
     title: '严重程度',
@@ -115,10 +140,15 @@ const columns: DataTableColumns<BugVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 200,
     render(row) {
       return h(NSpace, { size: 'small' }, {
         default: () => [
+          row.status < 3 ? h(NButton, {
+            size: 'small',
+            type: 'primary',
+            onClick: () => handleExecute(row)
+          }, { default: () => row.status === 0 ? '确认' : row.status === 1 ? '开始修复' : '标记修复' }) : null,
           h(NButton, {
             size: 'small',
             onClick: () => handleEdit(row)
@@ -133,12 +163,23 @@ const columns: DataTableColumns<BugVO> = [
   }
 ]
 
+async function loadProjects() {
+  try {
+    const { data } = await getProjectPage({ current: 1, size: 100 })
+    projects.value = data.data.records
+    projectOptions.value = data.data.records.map(p => ({ label: p.name, value: p.id }))
+  } catch (error) {
+    console.error('加载项目列表失败')
+  }
+}
+
 async function loadBugs() {
   loading.value = true
   try {
     const { data } = await getBugPage({
       current: pagination.value.page,
       size: pagination.value.pageSize,
+      projectId: queryParams.value.projectId ?? undefined,
       title: queryParams.value.title || undefined,
       severity: queryParams.value.severity ?? undefined,
       status: queryParams.value.status ?? undefined
@@ -158,13 +199,13 @@ function handleSearch() {
 }
 
 function handleReset() {
-  queryParams.value = { title: '', severity: null, status: null }
+  queryParams.value = { projectId: null, title: '', severity: null, status: null }
   handleSearch()
 }
 
 function handleAdd() {
   isEdit.value = false
-  formData.value = { projectId: 0, title: '', description: '', severity: 1, assigneeId: undefined, dueDate: undefined }
+  formData.value = { projectId: queryParams.value.projectId || undefined, title: '', description: '', severity: 1, assigneeId: undefined, dueDate: undefined }
   showModal.value = true
 }
 
@@ -210,6 +251,18 @@ async function handleDelete(id: number) {
   }
 }
 
+async function handleExecute(row: BugVO) {
+  const nextStatus = row.status === 0 ? 1 : row.status === 1 ? 2 : 3
+  const label = row.status === 0 ? '确认' : row.status === 1 ? '开始修复' : '标记修复'
+  try {
+    await updateBug({ id: row.id, title: row.title, description: row.description, severity: row.severity, status: nextStatus, assigneeId: row.assigneeId, dueDate: row.dueDate })
+    message.success(`${label}成功`)
+    loadBugs()
+  } catch (error) {
+    message.error(`${label}失败`)
+  }
+}
+
 function handlePageChange(page: number) {
   pagination.value.page = page
   loadBugs()
@@ -222,6 +275,7 @@ function handlePageSizeChange(pageSize: number) {
 }
 
 onMounted(() => {
+  loadProjects()
   loadBugs()
 })
 </script>
@@ -237,6 +291,14 @@ onMounted(() => {
 
     <!-- 搜索区域 -->
     <div class="flex items-center gap-3 mb-6">
+      <NSelect
+        v-model:value="queryParams.projectId"
+        :options="projectOptions"
+        placeholder="所属项目"
+        clearable
+        size="small"
+        class="w-40"
+      />
       <NInput
         v-model:value="queryParams.title"
         placeholder="Bug标题"
@@ -293,8 +355,14 @@ onMounted(() => {
         label-placement="left"
         label-width="80"
       >
-        <NFormItem label="项目ID" path="projectId">
-          <NInput v-model:value="formData.projectId" placeholder="请输入项目ID" />
+        <NFormItem label="所属项目">
+          <NSelect
+            v-model:value="formData.projectId"
+            :options="projectOptions"
+            placeholder="请选择所属项目（可选）"
+            clearable
+            :disabled="isEdit"
+          />
         </NFormItem>
         <NFormItem label="标题" path="title">
           <NInput v-model:value="formData.title" placeholder="请输入Bug标题" />

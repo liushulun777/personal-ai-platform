@@ -38,6 +38,11 @@ public class TaskCreatedEvent {
      */
     private String sourceType;
 
+    /**
+     * 认证Token（用于跨服务调用）
+     */
+    private String token;
+
     public TaskCreatedEvent() {
     }
 
@@ -49,5 +54,16 @@ public class TaskCreatedEvent {
         this.description = description;
         this.priority = priority;
         this.sourceType = sourceType;
+    }
+
+    public TaskCreatedEvent(Long taskId, Long projectId, String title, String description,
+                            Integer priority, String sourceType, String token) {
+        this.taskId = taskId;
+        this.projectId = projectId;
+        this.title = title;
+        this.description = description;
+        this.priority = priority;
+        this.sourceType = sourceType;
+        this.token = token;
     }
 }

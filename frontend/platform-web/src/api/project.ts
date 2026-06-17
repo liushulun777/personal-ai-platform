@@ -126,7 +126,7 @@ export interface BugVO {
 
 /** Bug创建参数 */
 export interface BugCreateParams {
-  projectId: number
+  projectId?: number
   title: string
   description?: string
   severity?: number
@@ -260,6 +260,11 @@ export function getTaskExecutions(id: number) {
 /** 触发 Agent 执行任务 */
 export function executeAgentTask(taskId: number) {
   return request.post<ApiResult<void>>(`/agent/tasks/${taskId}/execute`)
+}
+
+/** 按项目一键执行所有待执行任务 */
+export function executeProjectTasks(projectId: number) {
+  return request.post<ApiResult<number>>(`/agent/projects/${projectId}/execute`)
 }
 
 // ========== Bug API ==========

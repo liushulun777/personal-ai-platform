@@ -20,7 +20,8 @@ import {
   createProject,
   updateProject,
   deleteProject,
-  aiDecomposeTasks
+  aiDecomposeTasks,
+  executeProjectTasks
 } from '@/api/project'
 import type { ProjectVO, ProjectCreateParams, ProjectUpdateParams } from '@/api/project'
 
@@ -33,6 +34,7 @@ const formRef = ref<FormInst | null>(null)
 const currentProjectId = ref<number | null>(null)
 const aiContent = ref('')
 const aiLoading = ref(false)
+const executeLoading = ref(false)
 
 const queryParams = ref({
   name: '',
@@ -91,7 +93,14 @@ const priorityMap: Record<number, { label: string; type: 'success' | 'warning' |
 }
 
 const columns: DataTableColumns<ProjectVO> = [
-  { title: 'ID', key: 'id', width: 80 },
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    render(_row, index) {
+      return h('span', {}, { default: () => (pagination.value.page - 1) * pagination.value.pageSize + index + 1 })
+    }
+  },
   { title: '项目名称', key: 'name', width: 200, ellipsis: { tooltip: true } },
   {
     title: '状态',
@@ -117,7 +126,7 @@ const columns: DataTableColumns<ProjectVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 350,
     render(row) {
       return h(NSpace, { size: 'small' }, {
         default: () => [
@@ -127,6 +136,13 @@ const columns: DataTableColumns<ProjectVO> = [
             type: 'warning',
             onClick: () => handleAiDecompose(row)
           }, { default: () => 'AI拆分任务' }) : null,
+          // 一键执行按钮（进行中状态显示）
+          row.status === 1 ? h(NButton, {
+            size: 'small',
+            type: 'success',
+            loading: executeLoading.value,
+            onClick: () => handleExecuteProject(row.id)
+          }, { default: () => '一键执行' }) : null,
           h(NButton, {
             size: 'small',
             onClick: () => handleEdit(row)
@@ -210,6 +226,20 @@ async function handleAiSubmit() {
     message.error('AI 拆分任务失败')
   } finally {
     aiLoading.value = false
+  }
+}
+
+// 一键执行项目任务
+async function handleExecuteProject(projectId: number) {
+  executeLoading.value = true
+  try {
+    const { data } = await executeProjectTasks(projectId)
+    message.success(`已触发 ${data.data} 个任务执行`)
+    loadProjects()
+  } catch (error) {
+    message.error('执行项目任务失败')
+  } finally {
+    executeLoading.value = false
   }
 }
 

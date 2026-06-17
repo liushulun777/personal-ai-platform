@@ -205,7 +205,7 @@ function handleReset() {
 
 function handleAdd() {
   isEdit.value = false
-  formData.value = { projectId: queryParams.value.projectId || undefined, title: '', description: '', severity: 1, assigneeId: undefined, dueDate: undefined }
+  formData.value = { projectId: 0, title: '', description: '', severity: 1, assigneeId: undefined, dueDate: undefined }
   showModal.value = true
 }
 
@@ -355,14 +355,8 @@ onMounted(() => {
         label-placement="left"
         label-width="80"
       >
-        <NFormItem label="所属项目">
-          <NSelect
-            v-model:value="formData.projectId"
-            :options="projectOptions"
-            placeholder="请选择所属项目（可选）"
-            clearable
-            :disabled="isEdit"
-          />
+        <NFormItem label="项目ID" path="projectId">
+          <NInput v-model:value="formData.projectId" placeholder="请输入项目ID" />
         </NFormItem>
         <NFormItem label="标题" path="title">
           <NInput v-model:value="formData.title" placeholder="请输入Bug标题" />

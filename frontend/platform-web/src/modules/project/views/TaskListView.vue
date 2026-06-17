@@ -30,9 +30,10 @@ import {
   blockTask,
   unblockTask,
   getTaskExecutions,
-  executeAgentTask
+  executeAgentTask,
+  getProjectPage
 } from '@/api/project'
-import type { TaskVO, TaskCreateParams, TaskUpdateParams, TaskExecutionVO } from '@/api/project'
+import type { TaskVO, TaskCreateParams, TaskUpdateParams, TaskExecutionVO, ProjectVO } from '@/api/project'
 
 const message = useMessage()
 const loading = ref(false)
@@ -42,6 +43,7 @@ const isEdit = ref(false)
 const formRef = ref<FormInst | null>(null)
 
 const queryParams = ref({
+  projectId: null as number | null,
   title: '',
   status: null as number | null,
   priority: null as number | null
@@ -49,6 +51,7 @@ const queryParams = ref({
 
 const tasks = ref<TaskVO[]>([])
 const executions = ref<TaskExecutionVO[]>([])
+const projects = ref<ProjectVO[]>([])
 const currentTaskId = ref<number | null>(null)
 const pagination = ref({
   page: 1,
@@ -68,7 +71,7 @@ const formData = ref<TaskCreateParams & { id?: number }>({
 })
 
 const formRules = {
-  projectId: [{ required: true, message: '请输入项目ID', trigger: 'blur' }],
+  projectId: [{ required: true, message: '请选择所属项目', trigger: 'change' }],
   title: [{ required: true, message: '请输入任务标题', trigger: 'blur' }]
 }
 
@@ -117,9 +120,32 @@ const sourceTypeMap: Record<string, { label: string; type: 'success' | 'warning'
   'AGENT_CREATED': { label: 'Agent', type: 'success' }
 }
 
+// 项目选项
+const projectOptions = ref<{ label: string; value: number }[]>([])
+
+// 获取项目名称
+function getProjectName(projectId: number): string {
+  const project = projects.value.find(p => p.id === projectId)
+  return project ? project.name : String(projectId)
+}
+
 const columns: DataTableColumns<TaskVO> = [
-  { title: 'ID', key: 'id', width: 80 },
-  { title: '项目ID', key: 'projectId', width: 80 },
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    render(_row, index) {
+      return h('span', {}, { default: () => (pagination.value.page - 1) * pagination.value.pageSize + index + 1 })
+    }
+  },
+  {
+    title: '所属项目',
+    key: 'projectId',
+    width: 120,
+    render(row) {
+      return h('span', {}, { default: () => getProjectName(row.projectId) })
+    }
+  },
   { title: '标题', key: 'title', width: 200, ellipsis: { tooltip: true } },
   {
     title: '状态',
@@ -153,9 +179,20 @@ const columns: DataTableColumns<TaskVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 300,
+    width: 350,
     render(row) {
       const actions = []
+
+      // Agent 执行按钮（AI_GENERATED 任务，优先级最高）
+      if (row.sourceType === 'AI_GENERATED' && (row.status === 0 || row.status === 1)) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            type: 'warning',
+            onClick: () => handleAgentExecute(row.id)
+          }, { default: () => 'Agent执行' })
+        )
+      }
 
       // 根据状态显示不同操作按钮
       if (row.status === 0 || row.status === 1) {
@@ -213,17 +250,6 @@ const columns: DataTableColumns<TaskVO> = [
         )
       }
 
-      // Agent 执行按钮（AI_GENERATED 任务）
-      if (row.sourceType === 'AI_GENERATED' && (row.status === 0 || row.status === 1)) {
-        actions.push(
-          h(NButton, {
-            size: 'small',
-            type: 'warning',
-            onClick: () => handleAgentExecute(row.id)
-          }, { default: () => 'Agent执行' })
-        )
-      }
-
       // 查看执行日志
       actions.push(
         h(NButton, {
@@ -232,7 +258,7 @@ const columns: DataTableColumns<TaskVO> = [
         }, { default: () => '日志' })
       )
 
-      // 编辑和删除
+      // 编辑和删除（优先级最低）
       actions.push(
         h(NButton, {
           size: 'small',
@@ -249,12 +275,23 @@ const columns: DataTableColumns<TaskVO> = [
   }
 ]
 
+async function loadProjects() {
+  try {
+    const { data } = await getProjectPage({ current: 1, size: 100 })
+    projects.value = data.data.records
+    projectOptions.value = data.data.records.map(p => ({ label: p.name, value: p.id }))
+  } catch (error) {
+    console.error('加载项目列表失败')
+  }
+}
+
 async function loadTasks() {
   loading.value = true
   try {
     const { data } = await getTaskPage({
       current: pagination.value.page,
       size: pagination.value.pageSize,
+      projectId: queryParams.value.projectId ?? undefined,
       title: queryParams.value.title || undefined,
       status: queryParams.value.status ?? undefined,
       priority: queryParams.value.priority ?? undefined
@@ -274,13 +311,13 @@ function handleSearch() {
 }
 
 function handleReset() {
-  queryParams.value = { title: '', status: null, priority: null }
+  queryParams.value = { projectId: null, title: '', status: null, priority: null }
   handleSearch()
 }
 
 function handleAdd() {
   isEdit.value = false
-  formData.value = { projectId: 0, title: '', description: '', priority: 1, assigneeId: undefined, dueDate: undefined }
+  formData.value = { projectId: queryParams.value.projectId || 0, title: '', description: '', priority: 1, assigneeId: undefined, dueDate: undefined }
   showModal.value = true
 }
 
@@ -432,6 +469,7 @@ function handlePageSizeChange(pageSize: number) {
 }
 
 onMounted(() => {
+  loadProjects()
   loadTasks()
 })
 </script>
@@ -447,6 +485,14 @@ onMounted(() => {
 
     <!-- 搜索区域 -->
     <div class="flex items-center gap-3 mb-6">
+      <NSelect
+        v-model:value="queryParams.projectId"
+        :options="projectOptions"
+        placeholder="所属项目"
+        clearable
+        size="small"
+        class="w-40"
+      />
       <NInput
         v-model:value="queryParams.title"
         placeholder="任务标题"
@@ -503,8 +549,13 @@ onMounted(() => {
         label-placement="left"
         label-width="80"
       >
-        <NFormItem label="项目ID" path="projectId">
-          <NInput v-model:value="formData.projectId" placeholder="请输入项目ID" />
+        <NFormItem label="所属项目" path="projectId">
+          <NSelect
+            v-model:value="formData.projectId"
+            :options="projectOptions"
+            placeholder="请选择所属项目"
+            :disabled="isEdit"
+          />
         </NFormItem>
         <NFormItem label="标题" path="title">
           <NInput v-model:value="formData.title" placeholder="请输入任务标题" />

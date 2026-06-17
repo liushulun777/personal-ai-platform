@@ -262,6 +262,11 @@ export function executeAgentTask(taskId: number) {
   return request.post<ApiResult<void>>(`/agent/tasks/${taskId}/execute`)
 }
 
+/** 按项目一键执行所有待执行任务 */
+export function executeProjectTasks(projectId: number) {
+  return request.post<ApiResult<number>>(`/agent/projects/${projectId}/execute`)
+}
+
 // ========== Bug API ==========
 
 /** 分页查询Bug */

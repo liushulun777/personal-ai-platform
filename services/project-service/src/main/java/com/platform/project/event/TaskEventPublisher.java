@@ -2,6 +2,7 @@ package com.platform.project.event;
 
 import com.platform.project.domain.entity.Task;
 import com.platform.project.domain.event.TaskCreatedEvent;
+import cn.dev33.satoken.stp.StpUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,13 +26,22 @@ public class TaskEventPublisher {
      * @param task 任务实体
      */
     public void publishTaskCreatedEvent(Task task) {
+        // 获取当前用户的 Token
+        String token = null;
+        try {
+            token = StpUtil.getTokenValue();
+        } catch (Exception e) {
+            log.debug("获取 Token 失败，可能是系统内部调用");
+        }
+
         TaskCreatedEvent event = new TaskCreatedEvent(
                 task.getId(),
                 task.getProjectId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getPriority(),
-                task.getSourceType()
+                task.getSourceType(),
+                token
         );
 
         kafkaTemplate.send(TOPIC_TASK_CREATED, task.getId().toString(), event)

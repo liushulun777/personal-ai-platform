@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.platform.resource.mapper.ServiceResourceMapper">
+
+    <resultMap id="ServiceResourceResult" type="com.platform.resource.domain.entity.ServiceResourceEntity">
+        <id property="id" column="id"/>
+        <result property="serviceName" column="service_name"/>
+        <result property="cpuUsage" column="cpu_usage"/>
+        <result property="memoryUsage" column="memory_usage"/>
+        <result property="diskUsage" column="disk_usage"/>
+        <result property="networkIO" column="network_io"/>
+        <result property="recordTime" column="record_time"/>
+    </resultMap>
+
+    <select id="selectByTimeRange" resultMap="ServiceResourceResult">
+        SELECT * FROM service_resource
+        <where>
+            <if test="startTime != null">
+                AND record_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND record_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY record_time DESC
+    </select>
+
+    <select id="selectLatestByService" resultMap="ServiceResourceResult">
+        SELECT * FROM service_resource
+        WHERE id IN (
+            SELECT MAX(id) FROM service_resource
+            GROUP BY service_name
+        )
+        ORDER BY service_name
+    </select>
+
+</mapper>

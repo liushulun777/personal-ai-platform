@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, h, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   NDataTable,
   NButton,
   NSpace,
   NInput,
+  NInputNumber,
   NSelect,
   NModal,
   NForm,
@@ -12,18 +14,24 @@ import {
   NPopconfirm,
   NTag,
   NDatePicker,
+  NAlert,
+  NTooltip,
   useMessage
 } from 'naive-ui'
-import type { DataTableColumns, FormInst } from 'naive-ui'
+import type { DataTableColumns, FormInst, SelectOption } from 'naive-ui'
+import type { VNode } from 'vue'
 import {
   getProjectPage,
   createProject,
   updateProject,
   deleteProject,
-  aiDecomposeTasks
+  aiDecomposeTasks,
+  executeProjectTasks,
+  publishProject
 } from '@/api/project'
 import type { ProjectVO, ProjectCreateParams, ProjectUpdateParams } from '@/api/project'
 
+const router = useRouter()
 const message = useMessage()
 const loading = ref(false)
 const showModal = ref(false)
@@ -32,7 +40,18 @@ const isEdit = ref(false)
 const formRef = ref<FormInst | null>(null)
 const currentProjectId = ref<number | null>(null)
 const aiContent = ref('')
+const aiTechStack = ref('')
+const aiGranularity = ref('medium')
+const aiMaxTasks = ref(10)
 const aiLoading = ref(false)
+const publishLoading = ref(false)
+const executeLoading = ref<number | null>(null)
+
+const granularityOptions: SelectOption[] = [
+  { label: '细粒度（1-2天/任务）', value: 'fine' },
+  { label: '中等（3-5天/任务）', value: 'medium' },
+  { label: '粗粒度（1-2周/任务）', value: 'coarse' }
+]
 
 const queryParams = ref({
   name: '',
@@ -49,7 +68,7 @@ const pagination = ref({
   pageSizes: [10, 20, 50]
 })
 
-const formData = ref<ProjectCreateParams & { id?: number }>({
+const formData = ref<ProjectCreateParams & { id?: number; status?: number }>({
   name: '',
   description: '',
   priority: 1,
@@ -62,14 +81,14 @@ const formRules = {
   name: [{ required: true, message: '请输入项目名称', trigger: 'blur' }]
 }
 
-const statusOptions = [
+const statusOptions: SelectOption[] = [
   { label: '规划中', value: 0 },
   { label: '进行中', value: 1 },
   { label: '已完成', value: 2 },
   { label: '已归档', value: 3 }
 ]
 
-const priorityOptions = [
+const priorityOptions: SelectOption[] = [
   { label: '低', value: 0 },
   { label: '中', value: 1 },
   { label: '高', value: 2 },
@@ -90,8 +109,19 @@ const priorityMap: Record<number, { label: string; type: 'success' | 'warning' |
   3: { label: '紧急', type: 'error' }
 }
 
+// 项目状态：0-规划中，1-进行中，2-已完成，3-已归档
+// 只有规划中的项目才能发布和AI拆分任务
+// 只有进行中的项目才能执行任务
+
 const columns: DataTableColumns<ProjectVO> = [
-  { title: 'ID', key: 'id', width: 80 },
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    render(_row, index) {
+      return h('span', {}, { default: () => (pagination.value.page - 1) * pagination.value.pageSize + index + 1 })
+    }
+  },
   { title: '项目名称', key: 'name', width: 200, ellipsis: { tooltip: true } },
   {
     title: '状态',
@@ -117,26 +147,82 @@ const columns: DataTableColumns<ProjectVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 450,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          // AI 拆分任务按钮（规划中状态显示）
-          row.status === 0 ? h(NButton, {
+      const actions: VNode[] = []
+
+      // 发布项目按钮（仅规划中状态可操作）
+      if (row.status === 0) {
+        actions.push(
+          h(NTooltip, { trigger: 'hover' }, {
+            trigger: () => h(NButton, {
+              size: 'small',
+              type: 'primary',
+              loading: publishLoading.value,
+              disabled: !row.description,
+              onClick: () => handlePublish(row)
+            }, { default: () => '发布项目' }),
+            default: () => row.description ? '发布项目并触发Agent自动执行' : '请先编辑项目添加描述'
+          })
+        )
+      }
+
+      // AI 拆分任务按钮（仅规划中状态可操作）
+      if (row.status === 0) {
+        actions.push(
+          h(NButton, {
             size: 'small',
             type: 'warning',
             onClick: () => handleAiDecompose(row)
-          }, { default: () => 'AI拆分任务' }) : null,
-          h(NButton, {
-            size: 'small',
-            onClick: () => handleEdit(row)
-          }, { default: () => '编辑' }),
+          }, { default: () => 'AI拆分任务' })
+        )
+      }
+
+      // 一键执行按钮（仅进行中状态可操作）
+      if (row.status === 1) {
+        actions.push(
+          h(NTooltip, { trigger: 'hover' }, {
+            trigger: () => h(NButton, {
+              size: 'small',
+              type: 'success',
+              loading: executeLoading.value === row.id,
+              onClick: () => handleExecuteProject(row.id)
+            }, { default: () => '一键执行' }),
+            default: () => '按任务顺序执行所有待执行任务'
+          })
+        )
+      }
+
+      // 查看任务按钮
+      actions.push(
+        h(NButton, {
+          size: 'small',
+          quaternary: true,
+          type: 'info',
+          onClick: () => router.push(`/project/tasks?projectId=${row.id}`)
+        }, { default: () => '任务' })
+      )
+
+      // 编辑按钮
+      actions.push(
+        h(NButton, {
+          size: 'small',
+          quaternary: true,
+          onClick: () => handleEdit(row)
+        }, { default: () => '编辑' })
+      )
+
+      // 删除按钮（仅规划中状态可删除）
+      if (row.status === 0) {
+        actions.push(
           h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+            trigger: () => h(NButton, { size: 'small', quaternary: true, type: 'error' }, { default: () => '删除' }),
             default: () => '确认删除该项目？'
           })
-        ].filter(Boolean)
-      })
+        )
+      }
+
+      return h(NSpace, { size: 4 }, { default: () => actions })
     }
   }
 ]
@@ -151,10 +237,10 @@ async function loadProjects() {
       status: queryParams.value.status ?? undefined,
       priority: queryParams.value.priority ?? undefined
     })
-    projects.value = data.data.records
-    pagination.value.itemCount = data.data.total
-  } catch (error) {
-    message.error('加载项目列表失败')
+    projects.value = data.data?.records || []
+    pagination.value.itemCount = data.data?.total || 0
+  } catch {
+    projects.value = []
   } finally {
     loading.value = false
   }
@@ -195,14 +281,28 @@ function handleEdit(row: ProjectVO) {
 function handleAiDecompose(row: ProjectVO) {
   currentProjectId.value = row.id
   aiContent.value = row.description || ''
+  aiTechStack.value = ''
+  aiGranularity.value = 'medium'
+  aiMaxTasks.value = 10
   showAiModal.value = true
 }
 
 async function handleAiSubmit() {
   if (!currentProjectId.value) return
+  if (!aiContent.value.trim()) {
+    message.warning('请输入需求描述')
+    return
+  }
+
   aiLoading.value = true
   try {
-    const { data } = await aiDecomposeTasks(currentProjectId.value, aiContent.value)
+    const { data } = await aiDecomposeTasks(
+      currentProjectId.value,
+      aiContent.value,
+      aiTechStack.value || undefined,
+      aiMaxTasks.value,
+      aiGranularity.value
+    )
     message.success(`AI 拆分完成，创建了 ${data.data.length} 个任务`)
     showAiModal.value = false
     loadProjects()
@@ -210,6 +310,40 @@ async function handleAiSubmit() {
     message.error('AI 拆分任务失败')
   } finally {
     aiLoading.value = false
+  }
+}
+
+// 发布项目（AI拆分任务 + 自动触发Agent执行）
+async function handlePublish(row: ProjectVO) {
+  const requirement = row.description || ''
+  if (!requirement.trim()) {
+    message.warning('项目描述为空，请先编辑项目添加描述')
+    return
+  }
+
+  publishLoading.value = true
+  try {
+    const { data } = await publishProject(row.id, requirement)
+    message.success(`项目发布成功！已创建 ${data.data.taskCount} 个任务，正在执行...`)
+    loadProjects()
+  } catch (error) {
+    message.error('项目发布失败')
+  } finally {
+    publishLoading.value = false
+  }
+}
+
+// 一键执行项目任务
+async function handleExecuteProject(projectId: number) {
+  executeLoading.value = projectId
+  try {
+    const { data } = await executeProjectTasks(projectId)
+    message.success(`已触发 ${data.data} 个任务执行`)
+    loadProjects()
+  } catch (error) {
+    message.error('执行项目任务失败')
+  } finally {
+    executeLoading.value = null
   }
 }
 
@@ -327,7 +461,7 @@ onMounted(() => {
           <NInput v-model:value="formData.name" placeholder="请输入项目名称" />
         </NFormItem>
         <NFormItem label="描述" path="description">
-          <NInput v-model:value="formData.description" type="textarea" placeholder="请输入项目描述" />
+          <NInput v-model:value="formData.description" type="textarea" placeholder="请输入项目描述，AI将根据此描述拆分任务" />
         </NFormItem>
         <NFormItem label="优先级" path="priority">
           <NSelect v-model:value="formData.priority" :options="priorityOptions" />
@@ -355,19 +489,59 @@ onMounted(() => {
       v-model:show="showAiModal"
       title="AI 拆分任务"
       preset="card"
-      style="width: 600px"
+      style="width: 700px"
     >
       <div class="mb-4">
         <p class="text-sm text-gray-500 mb-2">
-          AI 将根据项目描述自动拆分任务。您可以修改需求描述后再执行拆分。
+          AI 将根据需求描述自动拆分任务。请尽量详细描述需求，以便 AI 拆分出更合理的任务。
         </p>
-        <NInput
-          v-model:value="aiContent"
-          type="textarea"
-          placeholder="请输入项目需求描述，AI 将自动拆分为多个子任务"
-          :rows="8"
-        />
+
+        <div class="mb-3">
+          <span class="text-sm font-medium mb-1 block">需求描述 *</span>
+          <NInput
+            v-model:value="aiContent"
+            type="textarea"
+            placeholder="请详细描述项目需求，包括：&#10;1. 要实现什么功能&#10;2. 涉及哪些模块&#10;3. 技术要求&#10;4. 验收标准"
+            :rows="8"
+          />
+        </div>
+
+        <div class="mb-3">
+          <span class="text-sm font-medium mb-1 block">技术栈（可选）</span>
+          <NInput
+            v-model:value="aiTechStack"
+            placeholder="如：Spring Boot 3.4, MyBatis-Plus, PostgreSQL, Vue 3, Naive UI"
+          />
+        </div>
+
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <span class="text-sm font-medium mb-1 block">任务粒度</span>
+            <NSelect
+              v-model:value="aiGranularity"
+              :options="granularityOptions"
+              placeholder="选择任务粒度"
+            />
+          </div>
+          <div class="flex-1">
+            <span class="text-sm font-medium mb-1 block">最大任务数</span>
+            <NInputNumber
+              v-model:value="aiMaxTasks"
+              :min="3"
+              :max="20"
+              placeholder="任务数量限制"
+              class="w-full"
+            />
+          </div>
+        </div>
       </div>
+
+      <NAlert type="info" class="mb-4">
+        <p class="text-sm">
+          <strong>提示：</strong>AI 会自动为任务设置执行顺序和依赖关系。前置任务（如数据库设计）会自动排在前面。
+        </p>
+      </NAlert>
+
       <template #footer>
         <NSpace justify="end">
           <NButton @click="showAiModal = false">取消</NButton>

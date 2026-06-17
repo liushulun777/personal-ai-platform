@@ -6,6 +6,7 @@ import com.platform.common.core.constant.CommonConstant;
 import com.platform.common.core.exception.BusinessException;
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.ResultCode;
+import com.platform.mcp.client.McpClient;
 import com.platform.mcp.convert.McpToolConvert;
 import com.platform.mcp.domain.dto.McpToolCreateDTO;
 import com.platform.mcp.domain.dto.McpToolInvokeDTO;
@@ -37,6 +38,7 @@ public class McpToolServiceImpl implements McpToolService {
     private final McpToolMapper mcpToolMapper;
     private final McpServerMapper mcpServerMapper;
     private final McpToolConvert mcpToolConvert;
+    private final McpClient mcpClient;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -121,18 +123,18 @@ public class McpToolServiceImpl implements McpToolService {
             throw new BusinessException(ResultCode.BUSINESS_ERROR, "MCP服务未启用");
         }
 
-        // TODO: 根据 transportType 调用实际的 MCP 协议
-        // stdio: 启动进程，发送 JSON-RPC 请求
-        // sse: 连接 SSE 端点，发送请求
-        // streamable_http: 发送 HTTP 请求
-        log.info("调用 MCP 工具: server={}, tool={}, args={}", server.getName(), tool.getName(), dto.getArguments());
+        log.info("调用 MCP 工具: server={}, tool={}, transport={}, args={}",
+                server.getName(), tool.getName(), server.getTransportType(), dto.getArguments());
 
-        return Map.of(
-                "status", "success",
-                "tool", tool.getName(),
-                "server", server.getName(),
-                "message", "工具调用成功（MCP协议调用待实现）"
-        );
+        try {
+            // 通过 MCP 协议调用工具
+            Map<String, Object> result = mcpClient.invokeTool(server, tool.getName(), dto.getArguments());
+            log.info("MCP 工具调用成功: {}", result);
+            return result;
+        } catch (Exception e) {
+            log.error("MCP 工具调用失败", e);
+            throw new BusinessException(ResultCode.BUSINESS_ERROR, "工具调用失败: " + e.getMessage());
+        }
     }
 
     @Override
@@ -143,17 +145,38 @@ public class McpToolServiceImpl implements McpToolService {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "MCP服务不存在");
         }
 
-        // TODO: 根据 transportType 连接 MCP Server，获取工具列表
-        // 1. stdio: 启动进程，发送 tools/list 请求
-        // 2. sse: 连接 SSE 端点，发送 tools/list 请求
-        // 3. streamable_http: 发送 HTTP POST 到 /mcp 端点
         log.info("同步 MCP 工具列表: server={}, transport={}", server.getName(), server.getTransportType());
 
         // 清除该服务下已有的工具
         mcpToolMapper.delete(new LambdaQueryWrapper<McpTool>()
                 .eq(McpTool::getServerId, serverId));
 
-        // TODO: 解析 MCP Server 返回的工具列表并保存
-        log.info("MCP 工具同步完成（实际同步逻辑待实现）");
+        try {
+            // 从 MCP Server 获取工具列表
+            List<Map<String, Object>> tools = mcpClient.listTools(server);
+            log.info("获取到 {} 个工具", tools.size());
+
+            // 保存工具列表
+            for (Map<String, Object> toolInfo : tools) {
+                McpTool tool = new McpTool();
+                tool.setServerId(serverId);
+                tool.setName((String) toolInfo.get("name"));
+                tool.setDescription((String) toolInfo.get("description"));
+                tool.setStatus(CommonConstant.STATUS_ENABLED);
+
+                // 保存 inputSchema
+                if (toolInfo.containsKey("inputSchema")) {
+                    tool.setInputSchema(toolInfo.get("inputSchema").toString());
+                }
+
+                mcpToolMapper.insert(tool);
+                log.info("保存工具: {}", tool.getName());
+            }
+
+            log.info("MCP 工具同步完成，共 {} 个工具", tools.size());
+        } catch (Exception e) {
+            log.error("同步 MCP 工具失败", e);
+            throw new BusinessException(ResultCode.BUSINESS_ERROR, "同步失败: " + e.getMessage());
+        }
     }
 }

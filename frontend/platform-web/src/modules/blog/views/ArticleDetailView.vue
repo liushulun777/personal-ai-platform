@@ -301,7 +301,7 @@ onMounted(async () => {
               />
               <AiGenerateButton
                 label="AI 生成标题"
-                :disabled="!formData.content.trim()"
+                :disabled="!formData.content?.trim()"
                 :generate-fn="handleGenerateTitles"
                 @use="(v: string) => formData.title = v"
               />
@@ -328,7 +328,7 @@ onMounted(async () => {
               />
               <AiGenerateButton
                 label="AI 推荐标签"
-                :disabled="!formData.title.trim() || !formData.content.trim()"
+                :disabled="!formData.title.trim() || !formData.content?.trim()"
                 :generate-fn="handleGenerateTags"
                 @use="handleAddAiTag"
               />
@@ -347,7 +347,7 @@ onMounted(async () => {
               />
               <AiGenerateButton
                 label="AI 生成摘要"
-                :disabled="!formData.content.trim()"
+                :disabled="!formData.content?.trim()"
                 :generate-fn="handleGenerateSummary"
                 @use="(v: string) => formData.summary = v"
               />

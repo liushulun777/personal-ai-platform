@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, h, onMounted } from 'vue'
+import { ref, h, onMounted, type VNode } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   NDataTable,
   NButton,
@@ -14,9 +15,10 @@ import {
   NDatePicker,
   NTimeline,
   NTimelineItem,
+  NTooltip,
   useMessage
 } from 'naive-ui'
-import type { DataTableColumns, FormInst } from 'naive-ui'
+import type { DataTableColumns, FormInst, SelectOption } from 'naive-ui'
 import {
   getTaskPage,
   createTask,
@@ -30,18 +32,22 @@ import {
   blockTask,
   unblockTask,
   getTaskExecutions,
-  executeAgentTask
+  executeAgentTask,
+  getProjectPage
 } from '@/api/project'
-import type { TaskVO, TaskCreateParams, TaskUpdateParams, TaskExecutionVO } from '@/api/project'
+import type { TaskVO, TaskCreateParams, TaskUpdateParams, TaskExecutionVO, ProjectVO } from '@/api/project'
 
+const route = useRoute()
 const message = useMessage()
 const loading = ref(false)
 const showModal = ref(false)
 const showExecutionModal = ref(false)
 const isEdit = ref(false)
 const formRef = ref<FormInst | null>(null)
+const executingTaskId = ref<number | null>(null)
 
 const queryParams = ref({
+  projectId: route.query.projectId ? Number(route.query.projectId) : null as number | null,
   title: '',
   status: null as number | null,
   priority: null as number | null
@@ -49,6 +55,7 @@ const queryParams = ref({
 
 const tasks = ref<TaskVO[]>([])
 const executions = ref<TaskExecutionVO[]>([])
+const projects = ref<ProjectVO[]>([])
 const currentTaskId = ref<number | null>(null)
 const pagination = ref({
   page: 1,
@@ -58,7 +65,7 @@ const pagination = ref({
   pageSizes: [10, 20, 50]
 })
 
-const formData = ref<TaskCreateParams & { id?: number }>({
+const formData = ref<TaskCreateParams & { id?: number; status?: number }>({
   projectId: 0,
   title: '',
   description: '',
@@ -68,12 +75,12 @@ const formData = ref<TaskCreateParams & { id?: number }>({
 })
 
 const formRules = {
-  projectId: [{ required: true, message: '请输入项目ID', trigger: 'blur' }],
+  projectId: [{ required: true, message: '请选择所属项目', trigger: 'change' }],
   title: [{ required: true, message: '请输入任务标题', trigger: 'blur' }]
 }
 
-// 新的6状态
-const statusOptions = [
+// 状态定义
+const statusOptions: SelectOption[] = [
   { label: 'BACKLOG', value: 0 },
   { label: 'READY', value: 1 },
   { label: 'DOING', value: 2 },
@@ -82,17 +89,11 @@ const statusOptions = [
   { label: 'BLOCKED', value: 5 }
 ]
 
-const priorityOptions = [
+const priorityOptions: SelectOption[] = [
   { label: 'LOW', value: 0 },
   { label: 'MEDIUM', value: 1 },
   { label: 'HIGH', value: 2 },
   { label: 'URGENT', value: 3 }
-]
-
-const sourceTypeOptions = [
-  { label: '人工创建', value: 'MANUAL' },
-  { label: 'AI生成', value: 'AI_GENERATED' },
-  { label: 'Agent创建', value: 'AGENT_CREATED' }
 ]
 
 const statusMap: Record<number, { label: string; type: 'success' | 'warning' | 'error' | 'info' | 'default' }> = {
@@ -117,9 +118,52 @@ const sourceTypeMap: Record<string, { label: string; type: 'success' | 'warning'
   'AGENT_CREATED': { label: 'Agent', type: 'success' }
 }
 
+// 项目选项
+const projectOptions = ref<{ label: string; value: number }[]>([])
+
+// 获取项目名称
+function getProjectName(projectId: number): string {
+  const project = projects.value.find(p => p.id === projectId)
+  return project ? project.name : String(projectId)
+}
+
+// 判断任务是否可以执行（前置任务需要完成）
+function canExecuteTask(task: TaskVO): boolean {
+  // 只有 BACKLOG 和 READY 状态的任务可以执行
+  return task.status === 0 || task.status === 1
+}
+
+// 判断任务是否可以编辑/删除
+function canEditTask(task: TaskVO): boolean {
+  // 只有 BACKLOG、READY、BLOCKED 状态的任务可以编辑
+  return task.status === 0 || task.status === 1 || task.status === 5
+}
+
 const columns: DataTableColumns<TaskVO> = [
-  { title: 'ID', key: 'id', width: 80 },
-  { title: '项目ID', key: 'projectId', width: 80 },
+  {
+    title: '序号',
+    key: 'index',
+    width: 60,
+    render(_row, index) {
+      return h('span', {}, { default: () => (pagination.value.page - 1) * pagination.value.pageSize + index + 1 })
+    }
+  },
+  {
+    title: '排序',
+    key: 'sortOrder',
+    width: 60,
+    render(row) {
+      return h('span', {}, { default: () => row.sortOrder || '-' })
+    }
+  },
+  {
+    title: '所属项目',
+    key: 'projectId',
+    width: 120,
+    render(row) {
+      return h('span', {}, { default: () => getProjectName(row.projectId) })
+    }
+  },
   { title: '标题', key: 'title', width: 200, ellipsis: { tooltip: true } },
   {
     title: '状态',
@@ -127,7 +171,19 @@ const columns: DataTableColumns<TaskVO> = [
     width: 100,
     render(row) {
       const s = statusMap[row.status]
-      return h(NTag, { type: s?.type, size: 'small' }, { default: () => s?.label || '未知' })
+      const content = [h('span', {}, { default: () => s?.label || '未知' })]
+
+      // 如果是 BLOCKED 状态，显示阻塞原因
+      if (row.status === 5 && row.blockedReason) {
+        content.push(
+          h(NTooltip, { trigger: 'hover' }, {
+            trigger: () => h('span', { class: 'ml-1 cursor-help' }, { default: () => '⚠️' }),
+            default: () => row.blockedReason
+          })
+        )
+      }
+
+      return h(NTag, { type: s?.type, size: 'small' }, { default: () => content })
     }
   },
   {
@@ -148,16 +204,38 @@ const columns: DataTableColumns<TaskVO> = [
       return h(NTag, { type: s?.type, size: 'small' }, { default: () => s?.label || '人工' })
     }
   },
+  {
+    title: '预估工时',
+    key: 'estimatedHours',
+    width: 80,
+    render(row) {
+      return h('span', {}, { default: () => row.estimatedHours ? `${row.estimatedHours}h` : '-' })
+    }
+  },
   { title: '截止日期', key: 'dueDate', width: 120 },
-  { title: '创建时间', key: 'createTime', width: 170 },
   {
     title: '操作',
     key: 'actions',
-    width: 300,
+    width: 400,
     render(row) {
-      const actions = []
+      const actions: VNode[] = []
 
-      // 根据状态显示不同操作按钮
+      // Agent 执行按钮（AI_GENERATED 任务，且状态为 BACKLOG 或 READY）
+      if (row.sourceType === 'AI_GENERATED' && canExecuteTask(row)) {
+        actions.push(
+          h(NTooltip, { trigger: 'hover' }, {
+            trigger: () => h(NButton, {
+              size: 'small',
+              type: 'warning',
+              loading: executingTaskId.value === row.id,
+              onClick: () => handleAgentExecute(row.id)
+            }, { default: () => 'Agent执行' }),
+            default: () => '触发 Agent 自动生成代码'
+          })
+        )
+      }
+
+      // 手动开始任务（BACKLOG/READY -> DOING）
       if (row.status === 0 || row.status === 1) {
         actions.push(
           h(NButton, {
@@ -168,6 +246,7 @@ const columns: DataTableColumns<TaskVO> = [
         )
       }
 
+      // DOING 状态的操作
       if (row.status === 2) {
         actions.push(
           h(NButton, {
@@ -180,14 +259,16 @@ const columns: DataTableColumns<TaskVO> = [
             type: 'info',
             onClick: () => handleSubmitReview(row.id)
           }, { default: () => '提交审核' }),
-          h(NButton, {
-            size: 'small',
-            type: 'warning',
-            onClick: () => handleBlock(row.id)
-          }, { default: () => '阻塞' })
+          h(NPopconfirm, {
+            onPositiveClick: () => handleBlockWithReason(row.id)
+          }, {
+            trigger: () => h(NButton, { size: 'small', type: 'warning' }, { default: () => '阻塞' }),
+            default: () => '确认阻塞该任务？'
+          })
         )
       }
 
+      // REVIEW 状态的操作
       if (row.status === 3) {
         actions.push(
           h(NButton, {
@@ -203,6 +284,7 @@ const columns: DataTableColumns<TaskVO> = [
         )
       }
 
+      // BLOCKED 状态的操作
       if (row.status === 5) {
         actions.push(
           h(NButton, {
@@ -213,41 +295,51 @@ const columns: DataTableColumns<TaskVO> = [
         )
       }
 
-      // Agent 执行按钮（AI_GENERATED 任务）
-      if (row.sourceType === 'AI_GENERATED' && (row.status === 0 || row.status === 1)) {
-        actions.push(
-          h(NButton, {
-            size: 'small',
-            type: 'warning',
-            onClick: () => handleAgentExecute(row.id)
-          }, { default: () => 'Agent执行' })
-        )
-      }
-
       // 查看执行日志
       actions.push(
         h(NButton, {
           size: 'small',
+          quaternary: true,
+          type: 'info',
           onClick: () => handleViewExecutions(row.id)
         }, { default: () => '日志' })
       )
 
-      // 编辑和删除
-      actions.push(
-        h(NButton, {
-          size: 'small',
-          onClick: () => handleEdit(row)
-        }, { default: () => '编辑' }),
-        h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-          trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-          default: () => '确认删除该任务？'
-        })
-      )
+      // 编辑按钮（仅可编辑状态显示）
+      if (canEditTask(row)) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            quaternary: true,
+            onClick: () => handleEdit(row)
+          }, { default: () => '编辑' })
+        )
+      }
 
-      return h(NSpace, { size: 'small' }, { default: () => actions })
+      // 删除按钮（仅 BACKLOG 状态可删除）
+      if (row.status === 0) {
+        actions.push(
+          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+            trigger: () => h(NButton, { size: 'small', quaternary: true, type: 'error' }, { default: () => '删除' }),
+            default: () => '确认删除该任务？'
+          })
+        )
+      }
+
+      return h(NSpace, { size: 4 }, { default: () => actions })
     }
   }
 ]
+
+async function loadProjects() {
+  try {
+    const { data } = await getProjectPage({ current: 1, size: 100 })
+    projects.value = data.data.records
+    projectOptions.value = data.data.records.map(p => ({ label: p.name, value: p.id }))
+  } catch (error) {
+    console.error('加载项目列表失败')
+  }
+}
 
 async function loadTasks() {
   loading.value = true
@@ -255,6 +347,7 @@ async function loadTasks() {
     const { data } = await getTaskPage({
       current: pagination.value.page,
       size: pagination.value.pageSize,
+      projectId: queryParams.value.projectId ?? undefined,
       title: queryParams.value.title || undefined,
       status: queryParams.value.status ?? undefined,
       priority: queryParams.value.priority ?? undefined
@@ -274,13 +367,13 @@ function handleSearch() {
 }
 
 function handleReset() {
-  queryParams.value = { title: '', status: null, priority: null }
+  queryParams.value = { projectId: null, title: '', status: null, priority: null }
   handleSearch()
 }
 
 function handleAdd() {
   isEdit.value = false
-  formData.value = { projectId: 0, title: '', description: '', priority: 1, assigneeId: undefined, dueDate: undefined }
+  formData.value = { projectId: queryParams.value.projectId || 0, title: '', description: '', priority: 1, assigneeId: undefined, dueDate: undefined }
   showModal.value = true
 }
 
@@ -306,7 +399,7 @@ async function handleSubmit() {
       await updateTask(formData.value as TaskUpdateParams)
       message.success('更新成功')
     } else {
-      await createTask(formData.value)
+      await createTask(formData.value as TaskCreateParams)
       message.success('创建成功')
     }
     showModal.value = false
@@ -326,7 +419,21 @@ async function handleDelete(id: number) {
   }
 }
 
-// 任务状态操作
+// Agent 执行任务
+async function handleAgentExecute(taskId: number) {
+  executingTaskId.value = taskId
+  try {
+    await executeAgentTask(taskId)
+    message.success('Agent 任务已触发，请查看执行日志')
+    loadTasks()
+  } catch (error) {
+    message.error('Agent 执行失败')
+  } finally {
+    executingTaskId.value = null
+  }
+}
+
+// 开始任务
 async function handleStart(id: number) {
   try {
     await startTask(id)
@@ -337,6 +444,7 @@ async function handleStart(id: number) {
   }
 }
 
+// 完成任务
 async function handleComplete(id: number) {
   try {
     await completeTask(id)
@@ -347,6 +455,7 @@ async function handleComplete(id: number) {
   }
 }
 
+// 提交审核
 async function handleSubmitReview(id: number) {
   try {
     await submitReview(id)
@@ -357,6 +466,7 @@ async function handleSubmitReview(id: number) {
   }
 }
 
+// 审核通过
 async function handleApprove(id: number) {
   try {
     await approveTask(id)
@@ -367,6 +477,7 @@ async function handleApprove(id: number) {
   }
 }
 
+// 审核拒绝
 async function handleReject(id: number) {
   try {
     await rejectTask(id, '审核不通过')
@@ -377,7 +488,8 @@ async function handleReject(id: number) {
   }
 }
 
-async function handleBlock(id: number) {
+// 阻塞任务
+async function handleBlockWithReason(id: number) {
   try {
     await blockTask(id, '手动阻塞')
     message.success('任务已阻塞')
@@ -387,6 +499,7 @@ async function handleBlock(id: number) {
   }
 }
 
+// 解除阻塞
 async function handleUnblock(id: number) {
   try {
     await unblockTask(id)
@@ -397,22 +510,11 @@ async function handleUnblock(id: number) {
   }
 }
 
-// Agent 执行
-async function handleAgentExecute(id: number) {
-  try {
-    await executeAgentTask(id)
-    message.success('Agent 任务已触发')
-    loadTasks()
-  } catch (error) {
-    message.error('触发失败')
-  }
-}
-
 // 查看执行日志
-async function handleViewExecutions(id: number) {
-  currentTaskId.value = id
+async function handleViewExecutions(taskId: number) {
+  currentTaskId.value = taskId
   try {
-    const { data } = await getTaskExecutions(id)
+    const { data } = await getTaskExecutions(taskId)
     executions.value = data.data || []
     showExecutionModal.value = true
   } catch (error) {
@@ -432,6 +534,7 @@ function handlePageSizeChange(pageSize: number) {
 }
 
 onMounted(() => {
+  loadProjects()
   loadTasks()
 })
 </script>
@@ -447,6 +550,15 @@ onMounted(() => {
 
     <!-- 搜索区域 -->
     <div class="flex items-center gap-3 mb-6">
+      <NSelect
+        v-model:value="queryParams.projectId"
+        :options="projectOptions"
+        placeholder="所属项目"
+        clearable
+        filterable
+        size="small"
+        class="w-48"
+      />
       <NInput
         v-model:value="queryParams.title"
         placeholder="任务标题"
@@ -503,8 +615,13 @@ onMounted(() => {
         label-placement="left"
         label-width="80"
       >
-        <NFormItem label="项目ID" path="projectId">
-          <NInput v-model:value="formData.projectId" placeholder="请输入项目ID" />
+        <NFormItem label="所属项目" path="projectId">
+          <NSelect
+            v-model:value="formData.projectId"
+            :options="projectOptions"
+            placeholder="请选择项目"
+            :disabled="isEdit"
+          />
         </NFormItem>
         <NFormItem label="标题" path="title">
           <NInput v-model:value="formData.title" placeholder="请输入任务标题" />
@@ -537,24 +654,19 @@ onMounted(() => {
       preset="card"
       style="width: 600px"
     >
-      <div v-if="executions.length === 0" class="text-center py-4 text-gray-500">
+      <div v-if="executions.length === 0" class="text-center py-8" style="color: var(--text-muted)">
         暂无执行记录
       </div>
       <NTimeline v-else>
         <NTimelineItem
-          v-for="item in executions"
-          :key="item.id"
-          :type="item.status === 0 ? 'success' : 'error'"
-          :title="item.action"
-          :content="item.content"
-          :time="item.createTime"
+          v-for="exec in executions"
+          :key="exec.id"
+          :type="exec.status === 2 ? 'success' : exec.status === 3 ? 'error' : 'info'"
+          :title="exec.action"
+          :content="exec.result || exec.errorMsg"
+          :time="exec.createTime"
         />
       </NTimeline>
-      <template #footer>
-        <NSpace justify="end">
-          <NButton @click="showExecutionModal = false">关闭</NButton>
-        </NSpace>
-      </template>
     </NModal>
   </div>
 </template>

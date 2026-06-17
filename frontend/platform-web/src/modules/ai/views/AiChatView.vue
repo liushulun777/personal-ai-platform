@@ -14,17 +14,36 @@
           :class="['conversation-item', { active: String(currentConversationId) === String(conv.id) }]"
           @click="handleSelectConversation(conv.id)"
         >
-          <div class="conv-title">{{ conv.title }}</div>
+          <div v-if="editingId === conv.id" class="conv-title editing">
+            <NInput
+              v-model:value="editingTitle"
+              size="tiny"
+              class="editing-input"
+              @keydown.enter="handleRename(conv.id)"
+              @keydown.escape="editingId = null"
+              @blur="handleRename(conv.id)"
+            />
+          </div>
+          <div v-else class="conv-title" @dblclick.stop="startRename(conv)">{{ conv.title }}</div>
           <div class="conv-meta">
             <span class="conv-model">{{ conv.model }}</span>
-            <NButton
-              quaternary
-              size="tiny"
-              type="error"
-              @click.stop="handleDeleteConversation(conv.id)"
-            >
-              删除
-            </NButton>
+            <div class="conv-actions">
+              <NButton
+                quaternary
+                size="tiny"
+                @click.stop="startRename(conv)"
+              >
+                重命名
+              </NButton>
+              <NButton
+                quaternary
+                size="tiny"
+                type="error"
+                @click.stop="handleDeleteConversation(conv.id)"
+              >
+                删除
+              </NButton>
+            </div>
           </div>
         </div>
 
@@ -41,10 +60,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { NButton, NEmpty, useDialog, useMessage } from 'naive-ui'
+import { ref, onMounted, nextTick } from 'vue'
+import { NButton, NEmpty, NInput, useDialog, useMessage } from 'naive-ui'
 import AiChatPanel from '@/components/ai/AiChatPanel.vue'
-import { getConversations, deleteConversation } from '@/api/ai'
+import { getConversations, deleteConversation, renameConversation } from '@/api/ai'
 import type { ConversationListVO } from '@/types/ai'
 
 const dialog = useDialog()
@@ -52,6 +71,8 @@ const message = useMessage()
 const conversations = ref<ConversationListVO[]>([])
 const currentConversationId = ref<string | number | undefined>()
 const chatPanelRef = ref()
+const editingId = ref<number | null>(null)
+const editingTitle = ref('')
 
 async function loadConversations() {
   try {
@@ -98,6 +119,30 @@ async function handleDeleteConversation(id: number) {
       }
     },
   })
+}
+
+function startRename(conv: ConversationListVO) {
+  editingId.value = conv.id
+  editingTitle.value = conv.title
+  nextTick(() => {
+    const input = document.querySelector('.editing-input input') as HTMLInputElement
+    input?.focus()
+  })
+}
+
+async function handleRename(id: number) {
+  if (!editingTitle.value.trim()) {
+    editingId.value = null
+    return
+  }
+  try {
+    await renameConversation(id, editingTitle.value.trim())
+    message.success('重命名成功')
+    editingId.value = null
+    await loadConversations()
+  } catch {
+    message.error('重命名失败')
+  }
 }
 
 onMounted(() => {
@@ -159,6 +204,14 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.conv-title.editing {
+  margin-bottom: 0;
+}
+
+.editing-input {
+  width: 100%;
+}
+
 .conv-meta {
   display: flex;
   align-items: center;
@@ -168,6 +221,17 @@ onMounted(() => {
 .conv-model {
   font-size: 11px;
   color: #999;
+}
+
+.conv-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.conversation-item:hover .conv-actions {
+  opacity: 1;
 }
 
 .empty-list {

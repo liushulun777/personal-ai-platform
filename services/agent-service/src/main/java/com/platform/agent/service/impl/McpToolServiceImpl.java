@@ -5,15 +5,19 @@ import com.platform.agent.service.McpToolService;
 import com.platform.common.core.result.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 
 /**
  * MCP 工具调用服务实现
@@ -24,6 +28,15 @@ import java.util.Map;
 public class McpToolServiceImpl implements McpToolService {
 
     private final KnowledgeServiceClient knowledgeServiceClient;
+
+    @Value("${spring.datasource.url}")
+    private String datasourceUrl;
+
+    @Value("${spring.datasource.username}")
+    private String datasourceUsername;
+
+    @Value("${spring.datasource.password}")
+    private String datasourcePassword;
 
     // ==================== 文件系统工具 ====================
 
@@ -107,12 +120,32 @@ public class McpToolServiceImpl implements McpToolService {
 
     // ==================== 终端工具 ====================
 
+    /**
+     * 检测操作系统是否为 Windows
+     */
+    private boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
     @Override
     public String exec(String workDir, String command) {
         try {
             log.info("执行命令: {} (workDir: {})", command, workDir);
-            ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
-            pb.directory(new File(workDir));
+
+            ProcessBuilder pb;
+            if (isWindows()) {
+                // Windows 环境使用 cmd
+                pb = new ProcessBuilder("cmd", "/c", command);
+            } else {
+                // Linux/Mac 环境使用 bash
+                pb = new ProcessBuilder("bash", "-c", command);
+            }
+
+            // 设置工作目录
+            if (workDir != null && !workDir.equals(".")) {
+                pb.directory(new File(workDir));
+            }
+
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
@@ -135,18 +168,72 @@ public class McpToolServiceImpl implements McpToolService {
     @Override
     public Map<String, Object> query(String sql) {
         log.info("执行查询: {}", sql);
-        // TODO: 实现数据库查询
-        Map<String, Object> result = new HashMap<>();
-        result.put("status", "success");
-        result.put("message", "查询执行成功");
-        return result;
+
+        // 安全检查：只允许 SELECT 查询
+        String trimmedSql = sql.trim().toUpperCase();
+        if (!trimmedSql.startsWith("SELECT")) {
+            throw new RuntimeException("只允许执行 SELECT 查询");
+        }
+
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            // 获取列名
+            List<String> columns = new ArrayList<>();
+            for (int i = 1; i <= columnCount; i++) {
+                columns.add(metaData.getColumnName(i));
+            }
+
+            // 获取数据
+            List<Map<String, Object>> rows = new ArrayList<>();
+            while (rs.next()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 1; i <= columnCount; i++) {
+                    row.put(columns.get(i - 1), rs.getObject(i));
+                }
+                rows.add(row);
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "success");
+            result.put("columns", columns);
+            result.put("rows", rows);
+            result.put("rowCount", rows.size());
+            return result;
+        } catch (Exception e) {
+            log.error("查询执行失败", e);
+            throw new RuntimeException("查询执行失败: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public int execute(String sql) {
         log.info("执行更新: {}", sql);
-        // TODO: 实现数据库更新
-        return 1;
+
+        // 安全检查：不允许 DROP、TRUNCATE 等危险操作
+        String trimmedSql = sql.trim().toUpperCase();
+        if (trimmedSql.contains("DROP") || trimmedSql.contains("TRUNCATE") || trimmedSql.contains("DELETE FROM")) {
+            throw new RuntimeException("不允许执行危险操作");
+        }
+
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            return stmt.executeUpdate(sql);
+        } catch (Exception e) {
+            log.error("更新执行失败", e);
+            throw new RuntimeException("更新执行失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 获取数据库连接
+     */
+    private Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(datasourceUrl, datasourceUsername, datasourcePassword);
     }
 
     // ==================== HTTP 工具 ====================
@@ -155,13 +242,15 @@ public class McpToolServiceImpl implements McpToolService {
     public String httpGet(String url) {
         try {
             log.info("HTTP GET: {}", url);
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(url))
-                    .GET()
-                    .build();
-            java.net.http.HttpResponse<String> response = client.send(request,
-                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response;
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(url))
+                        .GET()
+                        .build();
+                response = client.send(request,
+                        HttpResponse.BodyHandlers.ofString());
+            }
             return response.body();
         } catch (Exception e) {
             log.error("HTTP GET 失败: {}", url, e);
@@ -173,14 +262,16 @@ public class McpToolServiceImpl implements McpToolService {
     public String httpPost(String url, String body) {
         try {
             log.info("HTTP POST: {}", url);
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(url))
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
-                    .header("Content-Type", "application/json")
-                    .build();
-            java.net.http.HttpResponse<String> response = client.send(request,
-                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response;
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .header("Content-Type", "application/json")
+                        .build();
+                response = client.send(request,
+                        HttpResponse.BodyHandlers.ofString());
+            }
             return response.body();
         } catch (Exception e) {
             log.error("HTTP POST 失败: {}", url, e);

@@ -10,6 +10,8 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * 任务事件监听器
@@ -46,8 +48,8 @@ public class TaskEventListener {
             log.info("收到任务创建事件, topic: {}, partition: {}, offset: {}, taskId: {}, title: {}",
                     topic, partition, offset, event.getTaskId(), event.getTitle());
 
-            // 异步执行任务
-            agentService.executeTask(event.getTaskId());
+            // 异步执行任务（传递 Token 用于跨服务调用）
+            agentService.executeTask(event.getTaskId(), event.getToken());
 
             acknowledgment.acknowledge();
             log.info("任务执行完成, taskId: {}", event.getTaskId());

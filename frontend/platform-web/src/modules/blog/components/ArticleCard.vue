@@ -2,7 +2,7 @@
 import { NTag, NImage } from 'naive-ui'
 import type { ArticleVO } from '@/api/article'
 
-const props = defineProps<{
+defineProps<{
   article: ArticleVO
 }>()
 

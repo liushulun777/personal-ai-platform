@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, h, onMounted } from 'vue'
 import {
-  NCard,
   NDataTable,
   NButton,
   NSpace,
@@ -15,8 +14,7 @@ import {
   NPopconfirm,
   useMessage
 } from 'naive-ui'
-import { NTag } from 'naive-ui/es/tag'
-import type { DataTableColumns, FormInst, TreeSelectOption } from 'naive-ui'
+import type { DataTableColumns, FormInst, TreeSelectOption, SelectOption } from 'naive-ui'
 import {
   getRolePage,
   createRole,
@@ -74,16 +72,10 @@ const formRules = {
 }
 
 // 状态选项
-const statusOptions = [
+const statusOptions: SelectOption[] = [
   { label: '启用', value: 1 },
   { label: '禁用', value: 0 }
 ]
-
-// 状态映射
-const statusMap: Record<number, { label: string; type: 'success' | 'error' }> = {
-  1: { label: '启用', type: 'success' },
-  0: { label: '禁用', type: 'error' }
-}
 
 // 表格列定义
 const columns: DataTableColumns<RoleVO> = [

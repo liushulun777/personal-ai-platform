@@ -69,4 +69,14 @@ public class Task extends BaseEntity {
      * 阻塞原因
      */
     private String blockedReason;
+
+    /**
+     * 排序顺序（用于任务执行顺序）
+     */
+    private Integer sortOrder;
+
+    /**
+     * 预估工时（小时）
+     */
+    private Integer estimatedHours;
 }

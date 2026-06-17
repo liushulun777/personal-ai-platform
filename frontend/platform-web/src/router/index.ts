@@ -150,10 +150,28 @@ const routes: RouteRecordRaw[] = [
             meta: { title: '任务管理', requiresAuth: true }
           },
           {
+            path: 'tasks/board',
+            name: 'TaskBoard',
+            component: () => import('@/modules/project/views/TaskBoardView.vue'),
+            meta: { title: '任务看板', requiresAuth: true }
+          },
+          {
             path: 'bugs',
             name: 'BugList',
             component: () => import('@/modules/project/views/BugListView.vue'),
             meta: { title: 'Bug管理', requiresAuth: true }
+          },
+          {
+            path: 'bugs/stats',
+            name: 'BugStats',
+            component: () => import('@/modules/project/views/BugStatsView.vue'),
+            meta: { title: 'Bug统计', requiresAuth: true }
+          },
+          {
+            path: 'requirement',
+            name: 'RequirementDiscussion',
+            component: () => import('@/modules/project/views/RequirementDiscussionView.vue'),
+            meta: { title: '需求讨论', requiresAuth: true }
           }
         ]
       },
@@ -173,6 +191,19 @@ const routes: RouteRecordRaw[] = [
             name: 'McpToolList',
             component: () => import('@/modules/mcp/views/McpToolListView.vue'),
             meta: { title: 'MCP 工具', requiresAuth: true }
+          }
+        ]
+      },
+      {
+        path: 'agent',
+        name: 'Agent',
+        redirect: '/agent/executions',
+        children: [
+          {
+            path: 'executions',
+            name: 'AgentExecution',
+            component: () => import('@/modules/agent/views/AgentExecutionView.vue'),
+            meta: { title: '执行记录', requiresAuth: true }
           }
         ]
       }

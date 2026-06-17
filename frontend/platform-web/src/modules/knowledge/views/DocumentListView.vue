@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, h, onMounted } from 'vue'
 import {
-  NCard,
   NDataTable,
   NButton,
   NSpace,

@@ -59,6 +59,8 @@ export interface TaskVO {
   reporterId: number
   blockedReason: string
   dueDate: string
+  sortOrder: number
+  estimatedHours: number
   createTime: string
   updateTime: string
 }
@@ -182,8 +184,39 @@ export function deleteProject(id: number) {
 }
 
 /** AI拆分任务 */
-export function aiDecomposeTasks(id: number, content: string) {
-  return request.post<ApiResult<number[]>>(`/project/projects/${id}/ai-decompose`, { content })
+export function aiDecomposeTasks(
+  id: number,
+  content: string,
+  techStack?: string,
+  maxTasks?: number,
+  granularity?: string
+) {
+  return request.post<ApiResult<number[]>>(`/project/projects/${id}/ai-decompose`, {
+    content,
+    techStack,
+    maxTasks,
+    granularity
+  })
+}
+
+/** 发布项目并触发 Agent 执行 */
+export function publishProject(
+  id: number,
+  requirement: string,
+  techStack?: string
+) {
+  return request.post<ApiResult<{
+    projectId: number
+    projectName: string
+    taskCount: number
+    eventCount: number
+    taskIds: number[]
+    status: string
+    message: string
+  }>>(`/project/projects/${id}/publish`, {
+    requirement,
+    techStack
+  })
 }
 
 // ========== 任务 API ==========
@@ -260,6 +293,11 @@ export function getTaskExecutions(id: number) {
 /** 触发 Agent 执行任务 */
 export function executeAgentTask(taskId: number) {
   return request.post<ApiResult<void>>(`/agent/tasks/${taskId}/execute`)
+}
+
+/** 按项目一键执行所有待执行任务 */
+export function executeProjectTasks(projectId: number) {
+  return request.post<ApiResult<number>>(`/agent/projects/${projectId}/execute`)
 }
 
 // ========== Bug API ==========

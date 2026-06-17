@@ -20,7 +20,7 @@
       </div>
 
       <div
-        v-for="(msg, index) in messages"
+        v-for="(msg) in messages"
         :key="msg.id"
         :class="['message', msg.role]"
       >

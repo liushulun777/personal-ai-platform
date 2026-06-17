@@ -34,3 +34,5 @@ dist/
 
 # K8s secrets
 *k8s*secret*.yaml
+
+workspace

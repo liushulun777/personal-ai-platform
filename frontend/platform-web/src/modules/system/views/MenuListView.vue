@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, h, onMounted } from 'vue'
 import {
-  NCard,
   NDataTable,
   NButton,
   NSpace,
@@ -16,7 +15,7 @@ import {
   useMessage
 } from 'naive-ui'
 import { NTag } from 'naive-ui/es/tag'
-import type { DataTableColumns, FormInst, TreeSelectOption } from 'naive-ui'
+import type { DataTableColumns, FormInst, TreeSelectOption, SelectOption } from 'naive-ui'
 import {
   getMenuTree,
   createMenu,
@@ -62,7 +61,7 @@ const formRules = {
 }
 
 // 菜单类型选项
-const menuTypeOptions = [
+const menuTypeOptions: SelectOption[] = [
   { label: '目录', value: 0 },
   { label: '菜单', value: 1 },
   { label: '按钮', value: 2 }
@@ -76,13 +75,13 @@ const menuTypeMap: Record<number, { label: string; type: 'default' | 'info' | 'w
 }
 
 // 状态选项
-const statusOptions = [
+const statusOptions: SelectOption[] = [
   { label: '启用', value: 1 },
   { label: '禁用', value: 0 }
 ]
 
 // 可见性选项
-const visibleOptions = [
+const visibleOptions: SelectOption[] = [
   { label: '可见', value: 1 },
   { label: '隐藏', value: 0 }
 ]

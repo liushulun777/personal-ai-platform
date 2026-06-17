@@ -64,12 +64,26 @@ public class ProjectController {
 
     @Operation(summary = "AI拆分任务")
     @PostMapping("/{id}/ai-decompose")
-    public Result<List<Long>> aiDecomposeTasks(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        String content = body.get("content");
+    public Result<List<Long>> aiDecomposeTasks(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String content = (String) body.get("content");
+        String techStack = (String) body.get("techStack");
+        Integer maxTasks = body.get("maxTasks") != null ? Integer.parseInt(body.get("maxTasks").toString()) : null;
+        String granularity = (String) body.get("granularity");
+
         if (content == null || content.isEmpty()) {
             content = "请根据项目描述拆分任务";
         }
-        List<Long> taskIds = projectService.aiDecomposeTasks(id, content);
+        List<Long> taskIds = projectService.aiDecomposeTasks(id, content, techStack, maxTasks, granularity);
         return Result.success(taskIds);
+    }
+
+    @Operation(summary = "发布项目", description = "发布项目并自动触发 AI 拆分任务和 Agent 执行")
+    @PostMapping("/{id}/publish")
+    public Result<Map<String, Object>> publishProject(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String requirement = (String) body.get("requirement");
+        String techStack = (String) body.get("techStack");
+
+        Map<String, Object> result = projectService.publishProject(id, requirement, techStack);
+        return Result.success(result);
     }
 }

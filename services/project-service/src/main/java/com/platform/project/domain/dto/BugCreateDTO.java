@@ -1,7 +1,6 @@
 package com.platform.project.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -13,7 +12,6 @@ import java.time.LocalDate;
 @Data
 public class BugCreateDTO {
 
-    @NotNull(message = "项目ID不能为空")
     private Long projectId;
 
     @NotBlank(message = "Bug标题不能为空")

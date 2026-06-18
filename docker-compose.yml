@@ -112,7 +112,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://192.168.5.2:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -157,7 +157,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
     depends_on:
       - postgres
       - redis
@@ -180,7 +180,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
     depends_on:
       - postgres
       - redis
@@ -203,7 +203,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - postgres
@@ -228,7 +228,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -255,7 +255,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
       ELASTICSEARCH_URIS: http://elasticsearch:9200
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
@@ -282,7 +282,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
       OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
       - postgres
@@ -306,7 +306,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
       OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
       - postgres
@@ -330,7 +330,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
     depends_on:
       - postgres
       - redis
@@ -353,7 +353,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 16379
     depends_on:
       - postgres
       - redis

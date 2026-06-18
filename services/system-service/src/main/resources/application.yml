@@ -2,11 +2,13 @@ server:
   port: 1082
 
 spring:
+  config:
+    import: file:./config/application-env.yml
   application:
     name: system-service
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://172.18.0.34:5432/platform
+    url: jdbc:postgresql://${INFRA_HOST:172.18.0.34}:5432/platform
     username: postgres
     password: postgres
     druid:
@@ -15,13 +17,13 @@ spring:
       max-active: 20
   data:
     redis:
-      host: 172.18.0.34
-      port: 6379
+      host: ${INFRA_HOST:172.18.0.34}
+      port: 16379
       database: 0
   cloud:
     nacos:
       discovery:
-        server-addr: 172.18.0.34:8848
+        server-addr: ${INFRA_HOST:172.18.0.34}:8848
         fail-fast: false
 
 mybatis-plus:

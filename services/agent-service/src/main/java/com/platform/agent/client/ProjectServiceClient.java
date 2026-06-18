@@ -4,6 +4,9 @@ import com.platform.common.core.result.Result;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * Project Service Feign Client
  */
@@ -39,4 +42,12 @@ public interface ProjectServiceClient {
      */
     @GetMapping("/tasks/{id}")
     Result<Object> getTask(@PathVariable("id") Long id);
+
+    /**
+     * 获取项目任务列表
+     */
+    @GetMapping("/tasks")
+    Result<Map<String, Object>> getTaskList(@RequestParam("projectId") Long projectId,
+                                            @RequestParam(value = "status", required = false) Integer status,
+                                            @RequestParam(value = "size", defaultValue = "100") Integer size);
 }

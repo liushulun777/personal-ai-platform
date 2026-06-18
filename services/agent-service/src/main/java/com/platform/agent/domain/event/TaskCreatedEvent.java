@@ -37,4 +37,9 @@ public class TaskCreatedEvent {
      * 来源: MANUAL, AI_GENERATED, AGENT_CREATED
      */
     private String sourceType;
+
+    /**
+     * 认证Token（用于跨服务调用）
+     */
+    private String token;
 }

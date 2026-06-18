@@ -380,7 +380,7 @@ COMMENT ON TABLE ai_prompt IS 'AI提示词模板表';
 
 -- 超级管理员 (密码: admin123, BCrypt加密)
 INSERT INTO sys_user (id, username, password, nickname, status) VALUES
-(1, 'admin', '\$2a\$10\$XwAhNL39ZxUwSWeAeR0l7uy2poYNJ2/mc0rLMbpJQIXvtFUJ8Ycla', '超级管理员', 1);
+(1, 'admin', '$2a$10$XwAhNL39ZxUwSWeAeR0l7uy2poYNJ2/mc0rLMbpJQIXvtFUJ8Ycla', '超级管理员', 1);
 
 -- 超级管理员角色
 INSERT INTO sys_role (id, role_name, role_key, description, status) VALUES

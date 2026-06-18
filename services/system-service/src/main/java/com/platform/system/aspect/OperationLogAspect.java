@@ -50,14 +50,16 @@ public class OperationLogAspect {
         }
 
         // 获取请求参数
-        try {
-            Object[] args = joinPoint.getArgs();
-            if (args.length > 0) {
-                String params = objectMapper.writeValueAsString(args);
-                sysLog.setRequestParams(params.length() > 2000 ? params.substring(0, 2000) : params);
+        if (operationLog.saveParams()) {
+            try {
+                Object[] args = joinPoint.getArgs();
+                if (args.length > 0) {
+                    String params = objectMapper.writeValueAsString(args);
+                    sysLog.setRequestParams(params.length() > 2000 ? params.substring(0, 2000) : params);
+                }
+            } catch (Exception e) {
+                log.warn("序列化请求参数失败", e);
             }
-        } catch (Exception e) {
-            log.warn("序列化请求参数失败", e);
         }
 
         // 获取当前用户
@@ -72,11 +74,13 @@ public class OperationLogAspect {
             sysLog.setStatus(1);
 
             // 获取响应数据
-            try {
-                String responseData = objectMapper.writeValueAsString(result);
-                sysLog.setResponseData(responseData.length() > 2000 ? responseData.substring(0, 2000) : responseData);
-            } catch (Exception e) {
-                log.warn("序列化响应数据失败", e);
+            if (operationLog.saveResult()) {
+                try {
+                    String responseData = objectMapper.writeValueAsString(result);
+                    sysLog.setResponseData(responseData.length() > 2000 ? responseData.substring(0, 2000) : responseData);
+                } catch (Exception e) {
+                    log.warn("序列化响应数据失败", e);
+                }
             }
         } catch (Throwable e) {
             sysLog.setStatus(0);

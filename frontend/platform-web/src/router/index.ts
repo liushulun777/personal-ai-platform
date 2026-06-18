@@ -129,6 +129,12 @@ const routes: RouteRecordRaw[] = [
             name: 'PromptList',
             component: () => import('@/modules/ai/views/PromptListView.vue'),
             meta: { title: 'Prompt 模板', requiresAuth: true }
+          },
+          {
+            path: 'market',
+            name: 'PromptMarket',
+            component: () => import('@/modules/ai/views/PromptMarketView.vue'),
+            meta: { title: 'Prompt 市场', requiresAuth: true }
           }
         ]
       },

@@ -23,6 +23,10 @@ spring:
       discovery:
         server-addr: 172.18.0.34:8848
         fail-fast: false
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
   ai:
     openai:
       base-url: https://api.openai.com
@@ -34,9 +38,8 @@ spring:
 # 自定义AI模型配置
 ai:
   models:
-    # 默认模型
     default: mimo
-    # 模型配置
+    embedding-provider: ollama
     config:
       mimo:
         base-url: https://token-plan-cn.xiaomimimo.com
@@ -46,6 +49,18 @@ ai:
         base-url: https://api.openai.com
         api-key: ${OPENAI_API_KEY:sk-xxx}
         model: gpt-4o
+      ollama:
+        base-url: http://192.168.9.95:11434
+        api-key: ollama
+        model: nomic-embed-text
+
+# 知识库配置
+knowledge:
+  chunk:
+    default-size: 500
+    default-overlap: 50
+  embedding:
+    dimension: 768
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

@@ -42,3 +42,10 @@ sa-token:
   is-read-header: true
   is-read-cookie: false
 
+# MinIO 配置
+minio:
+  endpoint: http://172.18.0.34:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: platform
+

@@ -2,6 +2,7 @@ package com.platform.agent.service.impl;
 
 import com.platform.agent.client.ProjectServiceClient;
 import com.platform.agent.config.AgentConfig;
+import com.platform.agent.config.FeignAuthConfig;
 import com.platform.agent.domain.model.TaskExecutionResult;
 import com.platform.agent.service.*;
 import com.platform.common.core.result.Result;
@@ -92,15 +93,25 @@ public class AgentServiceImpl implements AgentService {
         executingTasks.add(taskId);
         Long executionId = executionHistoryService.createExecution(taskId);
 
+        // 获取当前请求的 Token（在异步执行前保存）
+        final String authToken = token != null ? token : getCurrentToken();
+        log.debug("保存 Token 用于异步执行: {}", authToken != null ? "已获取" : "未获取");
+
         return CompletableFuture.supplyAsync(() -> {
             try {
+                // 在异步线程中设置 Token
+                if (authToken != null) {
+                    FeignAuthConfig.setToken(authToken);
+                }
+
                 // 获取配置的超时时间
                 Duration timeout = getTaskTimeout(taskId);
                 return taskTimeoutService.executeWithTimeout(taskId, () -> {
-                    return doExecuteTask(taskId, token, executionId);
+                    return doExecuteTask(taskId, authToken, executionId);
                 }, timeout);
             } finally {
-                // 移除执行中标记
+                // 清除 Token 并移除执行中标记
+                FeignAuthConfig.clearToken();
                 executingTasks.remove(taskId);
             }
         }, agentTaskExecutor).exceptionally(e -> {
@@ -109,6 +120,18 @@ public class AgentServiceImpl implements AgentService {
             executionHistoryService.failExecution(executionId, "执行异常: " + e.getMessage());
             return TaskExecutionResult.failed("执行异常: " + e.getMessage());
         });
+    }
+
+    /**
+     * 获取当前请求的 Token
+     */
+    private String getCurrentToken() {
+        try {
+            return cn.dev33.satoken.stp.StpUtil.getTokenValue();
+        } catch (Exception e) {
+            log.debug("获取 Token 失败: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**

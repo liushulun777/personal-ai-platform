@@ -43,7 +43,7 @@ ai:
     config:
       mimo:
         base-url: https://token-plan-cn.xiaomimimo.com
-        api-key: ${MIMO_API_KEY:tp-cnq4bihy8ykip42l161tykqpqtlycb8ne8l4pb4d384v2ppg}
+        api-key: ${MIMO_API_KEY:tp-cezrw9xmilycqudu0pqz5u99iiii94jgeuqvs4egpezk3afq}
         model: mimo-v2.5-pro
       openai:
         base-url: https://api.openai.com

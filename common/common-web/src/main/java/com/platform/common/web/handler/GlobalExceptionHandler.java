@@ -1,5 +1,8 @@
 package com.platform.common.web.handler;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import com.platform.common.core.exception.BusinessException;
 import com.platform.common.core.result.Result;
 import com.platform.common.core.result.ResultCode;
@@ -25,6 +28,36 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * 未登录异常
+     */
+    @ExceptionHandler(NotLoginException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleNotLoginException(NotLoginException e, HttpServletRequest request) {
+        log.warn("未登录: {} - {}", request.getRequestURI(), e.getMessage());
+        return Result.fail(ResultCode.UNAUTHORIZED);
+    }
+
+    /**
+     * 无权限异常
+     */
+    @ExceptionHandler(NotPermissionException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleNotPermissionException(NotPermissionException e, HttpServletRequest request) {
+        log.warn("无权限: {} - {}", request.getRequestURI(), e.getMessage());
+        return Result.fail(ResultCode.FORBIDDEN);
+    }
+
+    /**
+     * 无角色异常
+     */
+    @ExceptionHandler(NotRoleException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleNotRoleException(NotRoleException e, HttpServletRequest request) {
+        log.warn("无角色: {} - {}", request.getRequestURI(), e.getMessage());
+        return Result.fail(ResultCode.FORBIDDEN);
+    }
 
     /**
      * 业务异常

@@ -22,6 +22,7 @@ declare module 'vue' {
     NSelect: typeof import('naive-ui')['NSelect']
     NSpin: typeof import('naive-ui')['NSpin']
     NTag: typeof import('naive-ui')['NTag']
+    Permission: typeof import('./components/common/Permission.vue')['default']
     PromptSelector: typeof import('./components/ai/PromptSelector.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

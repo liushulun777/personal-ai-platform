@@ -14,12 +14,15 @@ import {
   NImage,
   NDrawer,
   NDrawerContent,
+  NIcon,
   useMessage
 } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
+import { SparklesOutline } from '@vicons/ionicons5'
 import FileUpload from '@/components/common/FileUpload.vue'
 import AiGenerateButton from '@/components/ai/AiGenerateButton.vue'
 import AiChatPanel from '@/components/ai/AiChatPanel.vue'
+import AiArticleGenerateModal from '@/components/ai/AiArticleGenerateModal.vue'
 import { MdEditor } from 'md-editor-v3'
 import type { ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
@@ -36,6 +39,7 @@ import { getAllTags } from '@/api/tag'
 import type { CategoryVO } from '@/api/category'
 import type { TagVO } from '@/api/tag'
 import { generateSummary, generateTags, generateTitles } from '@/api/ai'
+import { createTag } from '@/api/tag'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,8 +48,14 @@ const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
 const saving = ref(false)
 const showChatDrawer = ref(false)
+const showAiGenerateModal = ref(false)
 
 // AI 生成函数
+function handleArticleGenerated(content: string) {
+  formData.value.content = content
+  showAiGenerateModal.value = false
+}
+
 function handleGenerateSummary() {
   if (!formData.value.content?.trim()) {
     message.warning('请先输入文章内容')
@@ -70,16 +80,54 @@ function handleGenerateTitles() {
   return generateTitles(formData.value.content, 3).then(res => res.data.data)
 }
 
+// 待创建的新标签（临时 ID < 0）
+let tagIdCounter = 0
+
 // 添加 AI 推荐的标签
 function handleAddAiTag(tagName: string) {
-  // 查找现有标签
   const existing = tagOptions.value.find(t => t.label === tagName)
   if (existing) {
     if (!formData.value.tagIds?.includes(existing.value)) {
       formData.value.tagIds = [...(formData.value.tagIds || []), existing.value]
     }
   } else {
-    message.info(`标签 "${tagName}" 不存在，请先创建`)
+    // 以临时 ID 添加到选项和选中
+    const tempId = --tagIdCounter
+    tagOptions.value.push({ label: tagName, value: tempId })
+    formData.value.tagIds = [...(formData.value.tagIds || []), tempId]
+  }
+}
+
+// NSelect @create 同步回调：仅返回临时选项，不调用 API
+function handleCreateTag(label: string) {
+  const trimmed = label.trim()
+  if (!trimmed) return { label, value: -1 }
+
+  // 检查是否已存在（忽略大小写）
+  const existing = tagOptions.value.find(t => t.label.toLowerCase() === trimmed.toLowerCase())
+  if (existing) return existing
+
+  const tempId = --tagIdCounter
+  const option = { label: trimmed, value: tempId }
+  tagOptions.value.push(option)
+  return option
+}
+
+// 提交前批量创建新标签，将临时 ID 替换为真实 ID
+async function flushNewTags() {
+  const newTags = tagOptions.value.filter(t => t.value < 0)
+  if (newTags.length === 0) return
+
+  for (const tag of newTags) {
+    const { data } = await createTag({
+      name: tag.label,
+      slug: tag.label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9一-龥-]/g, ''),
+    })
+    const realId = data.data
+    // 替换选项中的临时 ID
+    tag.value = realId
+    // 替换 formData 中的临时 ID
+    formData.value.tagIds = (formData.value.tagIds || []).map(id => id < 0 ? realId : id)
   }
 }
 
@@ -146,18 +194,22 @@ async function onUploadImg(files: File[], callback: (urls: string[]) => void) {
 
 // Load categories and tags
 async function loadOptions() {
-  const [catRes, tagRes] = await Promise.all([
-    getAllCategories(),
-    getAllTags()
-  ])
-  categoryOptions.value = catRes.data.data.map((c: CategoryVO) => ({
-    label: c.name,
-    value: c.id
-  }))
-  tagOptions.value = tagRes.data.data.map((t: TagVO) => ({
-    label: t.name,
-    value: t.id
-  }))
+  try {
+    const [catRes, tagRes] = await Promise.all([
+      getAllCategories(),
+      getAllTags()
+    ])
+    categoryOptions.value = catRes.data.data.map((c: CategoryVO) => ({
+      label: c.name,
+      value: c.id
+    }))
+    tagOptions.value = tagRes.data.data.map((t: TagVO) => ({
+      label: t.name,
+      value: t.id
+    }))
+  } catch (error) {
+    message.error('加载分类和标签失败，请刷新重试')
+  }
 }
 
 // Load article for edit mode
@@ -185,20 +237,33 @@ async function loadArticle() {
   }
 }
 
-// Save as draft
-async function handleSave() {
+// 保存前校验并创建新标签
+async function prepareForSave() {
   try {
     await formRef.value?.validate()
   } catch {
-    return
+    return false
   }
 
   if (!formData.value.title.trim()) {
     message.warning('请输入文章标题')
-    return
+    return false
   }
 
   saving.value = true
+  try {
+    await flushNewTags()
+    return true
+  } catch (error: any) {
+    message.error('创建标签失败: ' + (error.message || '未知错误'))
+    return false
+  }
+}
+
+// Save as draft
+async function handleSave() {
+  if (!(await prepareForSave())) return
+
   try {
     if (isCreate.value) {
       await createArticle(formData.value)
@@ -217,18 +282,8 @@ async function handleSave() {
 
 // Save and publish
 async function handlePublish() {
-  try {
-    await formRef.value?.validate()
-  } catch {
-    return
-  }
+  if (!(await prepareForSave())) return
 
-  if (!formData.value.title.trim()) {
-    message.warning('请输入文章标题')
-    return
-  }
-
-  saving.value = true
   try {
     let id = articleId.value
     if (isCreate.value) {
@@ -322,9 +377,12 @@ onMounted(async () => {
               <NSelect
                 v-model:value="formData.tagIds"
                 :options="tagOptions"
-                placeholder="请选择标签"
+                placeholder="请选择或输入标签"
                 multiple
+                filterable
+                tag
                 clearable
+                @create="handleCreateTag"
               />
               <AiGenerateButton
                 label="AI 推荐标签"
@@ -396,7 +454,15 @@ onMounted(async () => {
         </NCard>
 
         <NCard class="mt-4">
-          <template #header><span class="text-sm font-medium" style="color: var(--text-secondary)">文章内容</span></template>
+          <template #header>
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium" style="color: var(--text-secondary)">文章内容</span>
+              <NButton size="tiny" type="primary" ghost @click="showAiGenerateModal = true">
+                <template #icon><NIcon><SparklesOutline /></NIcon></template>
+                AI 生成
+              </NButton>
+            </div>
+          </template>
           <NFormItem path="content" :show-label="false">
             <MdEditor
               v-model="formData.content"
@@ -419,5 +485,12 @@ onMounted(async () => {
         <AiChatPanel />
       </NDrawerContent>
     </NDrawer>
+
+    <!-- AI 生成文章弹窗 -->
+    <AiArticleGenerateModal
+      v-model:show="showAiGenerateModal"
+      :current-title="formData.title"
+      @generated="handleArticleGenerated"
+    />
   </div>
 </template>

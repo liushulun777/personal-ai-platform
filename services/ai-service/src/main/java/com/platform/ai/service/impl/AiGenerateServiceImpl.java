@@ -1,5 +1,6 @@
 package com.platform.ai.service.impl;
 
+import com.platform.ai.domain.dto.ArticleGenerateDTO;
 import com.platform.ai.domain.vo.ArticleAskVO;
 import com.platform.ai.service.AiGenerateService;
 import com.platform.common.ai.service.AiService;
@@ -8,9 +9,13 @@ import com.platform.common.core.result.ResultCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -89,5 +94,99 @@ public class AiGenerateServiceImpl implements AiGenerateService {
             log.error("文章问答失败", e);
             throw new BusinessException(ResultCode.FAIL, "问答失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public String generateArticle(ArticleGenerateDTO dto) {
+        try {
+            String prompt = buildArticlePrompt(dto);
+            return aiService.chat(prompt);
+        } catch (Exception e) {
+            log.error("生成文章失败", e);
+            throw new BusinessException(ResultCode.FAIL, "生成文章失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public SseEmitter generateArticleStream(ArticleGenerateDTO dto) {
+        SseEmitter emitter = new SseEmitter(120_000L); // 2分钟超时
+        String prompt = buildArticlePrompt(dto);
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                Flux<String> flux = aiService.streamChat(prompt, null, null);
+                flux.subscribe(
+                        chunk -> {
+                            try {
+                                emitter.send(chunk);
+                            } catch (IOException e) {
+                                log.error("发送SSE数据失败", e);
+                            }
+                        },
+                        error -> {
+                            log.error("流式生成文章失败", error);
+                            emitter.completeWithError(error);
+                        },
+                        () -> {
+                            try {
+                                emitter.send("[DONE]");
+                            } catch (IOException ignored) {
+                            }
+                            emitter.complete();
+                        }
+                );
+            } catch (Exception e) {
+                log.error("流式生成文章失败", e);
+                emitter.completeWithError(e);
+            }
+        });
+
+        return emitter;
+    }
+
+    /**
+     * 构建文章生成Prompt
+     */
+    private String buildArticlePrompt(ArticleGenerateDTO dto) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("请撰写一篇关于「").append(dto.getTopic()).append("」的文章。\n\n");
+
+        // 文章类型
+        switch (dto.getType()) {
+            case "tech_blog" -> prompt.append("文章类型：技术博客，包含技术背景、实现细节、代码示例等。\n");
+            case "tutorial" -> prompt.append("文章类型：教程，步骤清晰，包含代码示例和说明。\n");
+            case "summary" -> prompt.append("文章类型：总结/综述，全面概述相关技术和方案。\n");
+            case "essay" -> prompt.append("文章类型：随笔，风格轻松，可以有个人观点。\n");
+            default -> prompt.append("文章类型：技术博客。\n");
+        }
+
+        // 写作风格
+        switch (dto.getStyle()) {
+            case "professional" -> prompt.append("写作风格：专业严谨，用词准确。\n");
+            case "casual" -> prompt.append("写作风格：轻松活泼，易于阅读。\n");
+            case "concise" -> prompt.append("写作风格：简洁明了，直击要点。\n");
+            default -> prompt.append("写作风格：专业严谨。\n");
+        }
+
+        // 文章长度
+        switch (dto.getLength()) {
+            case "short" -> prompt.append("文章长度：约500字。\n");
+            case "medium" -> prompt.append("文章长度：约1000字。\n");
+            case "long" -> prompt.append("文章长度：约2000字。\n");
+            default -> prompt.append("文章长度：约1000字。\n");
+        }
+
+        // 补充说明
+        if (dto.getExtra() != null && !dto.getExtra().isBlank()) {
+            prompt.append("\n补充要求：").append(dto.getExtra()).append("\n");
+        }
+
+        prompt.append("\n请直接输出 Markdown 格式的文章内容，要求：\n");
+        prompt.append("1. 结构清晰，使用合适的标题层级\n");
+        prompt.append("2. 内容专业、有深度\n");
+        prompt.append("3. 如为技术文章，包含代码示例\n");
+        prompt.append("4. 不要添加任何额外说明或前缀");
+
+        return prompt.toString();
     }
 }

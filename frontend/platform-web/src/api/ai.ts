@@ -175,3 +175,103 @@ export function deletePrompt(id: number) {
 export function renameConversation(conversationId: number, title: string) {
   return request.put<ApiResult<void>>(`/ai/conversations/${conversationId}/title`, null, { params: { title } })
 }
+
+/** 文章生成参数 */
+export interface ArticleGenerateParams {
+  topic: string
+  type?: string
+  style?: string
+  length?: string
+  extra?: string
+}
+
+/** AI 生成文章 */
+export function generateArticle(params: ArticleGenerateParams) {
+  return request.post<ApiResult<string>>('/ai/generate/article', params)
+}
+
+/** AI 生成文章（流式） */
+export async function generateArticleStream(
+  params: ArticleGenerateParams,
+  onChunk: (text: string) => void,
+  onDone?: () => void,
+  onError?: (error: Error) => void
+): Promise<AbortController> {
+  const controller = new AbortController()
+  const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+  const authStore = (await import('@/stores/auth')).useAuthStore()
+
+  try {
+    const response = await fetch(`${baseURL}/ai/generate/article/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authStore.token || '',
+      },
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`)
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error('ReadableStream not supported')
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+
+      // 按双换行分割事件（SSE 标准）
+      const events = buffer.split('\n\n')
+      buffer = events.pop() || '' // 保留未完成的事件
+
+      for (const event of events) {
+        // 解析单个事件中的所有 data 行
+        const dataLines = event.split('\n')
+          .filter(line => line.startsWith('data:'))
+          .map(line => line.slice(5))
+
+        if (dataLines.length > 0) {
+          // 多行 data 用换行连接
+          const text = dataLines.join('\n')
+          if (text) {
+            onChunk(text)
+          }
+        }
+      }
+    }
+
+    // 处理 buffer 中剩余数据
+    if (buffer.trim()) {
+      const dataLines = buffer.split('\n')
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5))
+
+      if (dataLines.length > 0) {
+        const text = dataLines.join('\n')
+        if (text) {
+          onChunk(text)
+        }
+      }
+    }
+
+    onDone?.()
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      onDone?.()
+    } else {
+      onError?.(error)
+    }
+  }
+
+  return controller
+}

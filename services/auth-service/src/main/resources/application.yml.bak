@@ -16,7 +16,7 @@ spring:
   data:
     redis:
       host: 172.18.0.34
-      port: 6379
+      port: 16379
       database: 0
   cloud:
     nacos:

@@ -16,7 +16,7 @@ spring:
   data:
     redis:
       host: 172.18.0.34
-      port: 6379
+      port: 16379
       database: 0
   cloud:
     nacos:
@@ -47,7 +47,7 @@ ai:
     default-model: mimo
     config:
       mimo:
-        base-url: http://192.168.9.95:8080/v1
+        base-url: http://116.198.232.52:8080/v1
         api-key: ''
         model: mimo
 

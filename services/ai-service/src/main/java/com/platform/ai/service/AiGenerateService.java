@@ -1,6 +1,8 @@
 package com.platform.ai.service;
 
+import com.platform.ai.domain.dto.ArticleGenerateDTO;
 import com.platform.ai.domain.vo.ArticleAskVO;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -46,4 +48,20 @@ public interface AiGenerateService {
      * @return 回答
      */
     ArticleAskVO askArticle(String articleContent, String question);
+
+    /**
+     * 生成文章
+     *
+     * @param dto 文章生成参数
+     * @return 生成的文章内容
+     */
+    String generateArticle(ArticleGenerateDTO dto);
+
+    /**
+     * 生成文章（流式）
+     *
+     * @param dto 文章生成参数
+     * @return SseEmitter
+     */
+    SseEmitter generateArticleStream(ArticleGenerateDTO dto);
 }

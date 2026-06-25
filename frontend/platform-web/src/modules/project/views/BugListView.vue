@@ -14,7 +14,7 @@ import {
   NDatePicker,
   useMessage
 } from 'naive-ui'
-import type { DataTableColumns, FormInst } from 'naive-ui'
+import type { DataTableColumns, FormInst, SelectOption } from 'naive-ui'
 import {
   getBugPage,
   createBug,
@@ -48,7 +48,7 @@ const pagination = ref({
 })
 
 const formData = ref<BugCreateParams & { id?: number; status?: number }>({
-  projectId: undefined,
+  projectId: 0,
   title: '',
   description: '',
   severity: 1,
@@ -57,17 +57,18 @@ const formData = ref<BugCreateParams & { id?: number; status?: number }>({
 })
 
 const formRules = {
+  projectId: [{ required: true, message: '请选择所属项目', trigger: 'change' }],
   title: [{ required: true, message: '请输入Bug标题', trigger: 'blur' }]
 }
 
-const severityOptions = [
+const severityOptions: SelectOption[] = [
   { label: '轻微', value: 0 },
   { label: '一般', value: 1 },
   { label: '严重', value: 2 },
   { label: '致命', value: 3 }
 ]
 
-const statusOptions = [
+const statusOptions: SelectOption[] = [
   { label: '待确认', value: 0 },
   { label: '已确认', value: 1 },
   { label: '修复中', value: 2 },
@@ -140,15 +141,10 @@ const columns: DataTableColumns<BugVO> = [
   {
     title: '操作',
     key: 'actions',
-    width: 200,
+    width: 160,
     render(row) {
       return h(NSpace, { size: 'small' }, {
         default: () => [
-          row.status < 3 ? h(NButton, {
-            size: 'small',
-            type: 'primary',
-            onClick: () => handleExecute(row)
-          }, { default: () => row.status === 0 ? '确认' : row.status === 1 ? '开始修复' : '标记修复' }) : null,
           h(NButton, {
             size: 'small',
             onClick: () => handleEdit(row)
@@ -205,7 +201,7 @@ function handleReset() {
 
 function handleAdd() {
   isEdit.value = false
-  formData.value = { projectId: 0, title: '', description: '', severity: 1, assigneeId: undefined, dueDate: undefined }
+  formData.value = { projectId: queryParams.value.projectId || 0, title: '', description: '', severity: 1, assigneeId: undefined, dueDate: undefined }
   showModal.value = true
 }
 
@@ -248,18 +244,6 @@ async function handleDelete(id: number) {
     loadBugs()
   } catch (error) {
     message.error('删除失败')
-  }
-}
-
-async function handleExecute(row: BugVO) {
-  const nextStatus = row.status === 0 ? 1 : row.status === 1 ? 2 : 3
-  const label = row.status === 0 ? '确认' : row.status === 1 ? '开始修复' : '标记修复'
-  try {
-    await updateBug({ id: row.id, title: row.title, description: row.description, severity: row.severity, status: nextStatus, assigneeId: row.assigneeId, dueDate: row.dueDate })
-    message.success(`${label}成功`)
-    loadBugs()
-  } catch (error) {
-    message.error(`${label}失败`)
   }
 }
 
@@ -355,8 +339,13 @@ onMounted(() => {
         label-placement="left"
         label-width="80"
       >
-        <NFormItem label="项目ID" path="projectId">
-          <NInput v-model:value="formData.projectId" placeholder="请输入项目ID" />
+        <NFormItem label="所属项目" path="projectId">
+          <NSelect
+            v-model:value="formData.projectId"
+            :options="projectOptions"
+            placeholder="请选择所属项目"
+            :disabled="isEdit"
+          />
         </NFormItem>
         <NFormItem label="标题" path="title">
           <NInput v-model:value="formData.title" placeholder="请输入Bug标题" />

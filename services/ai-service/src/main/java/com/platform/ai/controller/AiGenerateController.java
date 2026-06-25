@@ -1,6 +1,7 @@
 package com.platform.ai.controller;
 
 import com.platform.ai.domain.dto.ArticleAskDTO;
+import com.platform.ai.domain.dto.ArticleGenerateDTO;
 import com.platform.ai.domain.dto.SummaryDTO;
 import com.platform.ai.domain.dto.TagGenerateDTO;
 import com.platform.ai.domain.dto.TitleGenerateDTO;
@@ -15,7 +16,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -77,5 +80,23 @@ public class AiGenerateController {
         }
         String articleContent = articleResult.getData().getContent();
         return Result.success(aiGenerateService.askArticle(articleContent, articleAskDTO.getQuestion()));
+    }
+
+    /**
+     * 生成文章
+     */
+    @Operation(summary = "生成文章", description = "根据主题和参数生成完整文章")
+    @PostMapping("/article")
+    public Result<String> generateArticle(@Valid @RequestBody ArticleGenerateDTO dto) {
+        return Result.success(aiGenerateService.generateArticle(dto));
+    }
+
+    /**
+     * 生成文章（流式）
+     */
+    @Operation(summary = "生成文章（流式）", description = "流式生成文章内容")
+    @PostMapping(value = "/article/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter generateArticleStream(@Valid @RequestBody ArticleGenerateDTO dto) {
+        return aiGenerateService.generateArticleStream(dto);
     }
 }

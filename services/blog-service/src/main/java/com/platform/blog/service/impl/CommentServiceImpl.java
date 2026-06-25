@@ -1,6 +1,7 @@
 package com.platform.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.platform.blog.client.UserServiceClient;
 import com.platform.blog.domain.dto.CommentCreateDTO;
 import com.platform.blog.domain.entity.Article;
 import com.platform.blog.domain.entity.Comment;
@@ -10,25 +11,30 @@ import com.platform.blog.mapper.CommentMapper;
 import com.platform.blog.service.CommentService;
 import com.platform.common.core.constant.CommonConstant;
 import com.platform.common.core.exception.BusinessException;
+import com.platform.common.core.result.Result;
 import com.platform.common.core.result.ResultCode;
 import com.platform.common.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * 评论服务实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
     private final CommentMapper commentMapper;
     private final ArticleMapper articleMapper;
+    private final UserServiceClient userServiceClient;
 
     @Override
     public List<CommentVO> listByArticleId(Long articleId) {
@@ -112,8 +118,38 @@ public class CommentServiceImpl implements CommentService {
         vo.setContent(comment.getContent());
         vo.setLikeCount(comment.getLikeCount());
         vo.setCreateTime(comment.getCreateTime());
-        // TODO: 查询用户信息填充username, nickname, avatar
+
+        // 查询用户信息填充
+        fillUserInfo(vo, comment.getUserId());
+
         return vo;
+    }
+
+    /**
+     * 填充用户信息
+     */
+    private void fillUserInfo(CommentVO vo, Long userId) {
+        if (userId == null) {
+            return;
+        }
+
+        try {
+            Map<String, Object> userInfo = userServiceClient.getUserById(userId);
+            if (userInfo != null) {
+                vo.setUsername((String) userInfo.get("username"));
+                vo.setNickname((String) userInfo.get("nickname"));
+                vo.setAvatar((String) userInfo.get("avatar"));
+            } else {
+                // 设置默认值
+                vo.setUsername("用户" + userId);
+                vo.setNickname("用户" + userId);
+            }
+        } catch (Exception e) {
+            log.warn("获取用户信息失败, userId: {}", userId, e);
+            // 设置默认值
+            vo.setUsername("用户" + userId);
+            vo.setNickname("用户" + userId);
+        }
     }
 
     /**

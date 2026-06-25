@@ -21,4 +21,19 @@ public @interface OperationLog {
      * 操作
      */
     String operation() default "";
+
+    /**
+     * 操作类型：CREATE-新增, UPDATE-修改, DELETE-删除, QUERY-查询, EXPORT-导出, OTHER-其他
+     */
+    OperationType type() default OperationType.OTHER;
+
+    /**
+     * 是否保存请求参数
+     */
+    boolean saveParams() default true;
+
+    /**
+     * 是否保存响应数据
+     */
+    boolean saveResult() default false;
 }

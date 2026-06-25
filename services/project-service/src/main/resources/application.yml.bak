@@ -1,0 +1,60 @@
+server:
+  port: 1088
+
+spring:
+  application:
+    name: project-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://172.18.0.34:5432/platform
+    username: postgres
+    password: postgres
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+  data:
+    redis:
+      host: 172.18.0.34
+      port: 16379
+      database: 0
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 172.18.0.34:8848
+        fail-fast: false
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  is-read-header: true
+  is-read-cookie: false
+
+# AI 模型配置
+ai:
+  models:
+    default-model: mimo
+    config:
+      mimo:
+        base-url: http://116.198.232.52:8080/v1
+        api-key: ''
+        model: mimo
+
+logging:
+  level:
+    com.platform.project: debug
+  file:
+    name: logs/project-service.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

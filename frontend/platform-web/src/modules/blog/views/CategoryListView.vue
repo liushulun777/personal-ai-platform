@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, h, onMounted } from 'vue'
 import {
-  NCard,
   NDataTable,
   NButton,
   NSpace,
@@ -10,7 +9,6 @@ import {
   NFormItem,
   NInput,
   NInputNumber,
-  NSelect,
   NPopconfirm,
   useMessage
 } from 'naive-ui'
@@ -39,20 +37,6 @@ const formData = ref<CategoryCreateParams & { id?: number }>({
   sort: 0,
   status: 1
 })
-
-const formRules = {
-  name: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' }
-  ],
-  slug: [
-    { required: true, message: '请输入URL标识', trigger: 'blur' }
-  ]
-}
-
-const statusOptions = [
-  { label: '启用', value: 1 },
-  { label: '禁用', value: 0 }
-]
 
 const statusMap: Record<number, { label: string; type: 'success' | 'error' }> = {
   1: { label: '启用', type: 'success' },

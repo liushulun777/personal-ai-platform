@@ -9,7 +9,7 @@ import { NSelect } from 'naive-ui/es/select'
 import { NEmpty } from 'naive-ui/es/empty'
 import { NPagination } from 'naive-ui/es/pagination'
 import { NButton, NSpin } from 'naive-ui'
-import type { DataTableColumns } from 'naive-ui'
+import type { DataTableColumns, SelectOption } from 'naive-ui'
 import {
   getArticlePage,
   deleteArticle,
@@ -36,8 +36,8 @@ const pagination = ref({
   itemCount: 0
 })
 
-const statusOptions = [
-  { label: '全部', value: null },
+const statusOptions: SelectOption[] = [
+  { label: '全部', value: null as any },
   { label: '草稿', value: 0 },
   { label: '已发布', value: 1 },
   { label: '已归档', value: 2 }

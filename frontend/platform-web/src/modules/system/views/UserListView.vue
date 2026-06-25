@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, h, onMounted } from 'vue'
 import {
-  NCard,
   NDataTable,
   NButton,
   NSpace,
@@ -10,12 +9,11 @@ import {
   NModal,
   NForm,
   NFormItem,
-  NInputNumber,
   NPopconfirm,
   useMessage
 } from 'naive-ui'
 import { NTag } from 'naive-ui/es/tag'
-import type { DataTableColumns, FormInst } from 'naive-ui'
+import type { DataTableColumns, FormInst, SelectOption } from 'naive-ui'
 import {
   getUserPage,
   createUser,
@@ -71,7 +69,7 @@ const formRules = {
 }
 
 // 状态选项
-const statusOptions = [
+const statusOptions: SelectOption[] = [
   { label: '启用', value: 1 },
   { label: '禁用', value: 0 }
 ]

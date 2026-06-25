@@ -19,10 +19,8 @@
         <module>auth-service</module>
         <module>system-service</module>
         <module>blog-service</module>
-        <module>file-service</module>
         <module>search-service</module>
         <module>ai-service</module>
-        <module>knowledge-service</module>
         <module>project-service</module>
         <module>mcp-service</module>
         <module>agent-service</module>

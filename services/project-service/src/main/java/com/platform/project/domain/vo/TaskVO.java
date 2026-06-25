@@ -23,6 +23,7 @@ public class TaskVO {
     private Long assigneeId;
     private Long reporterId;
     private String blockedReason;
+    private Integer sortOrder;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dueDate;

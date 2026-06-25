@@ -23,7 +23,7 @@ spring:
         - id: system-service
           uri: lb://system-service
           predicates:
-            - Path=/system/**
+            - Path=/system/**,/file/**
           filters:
             - StripPrefix=1
 
@@ -31,13 +31,6 @@ spring:
           uri: lb://blog-service
           predicates:
             - Path=/blog/**
-          filters:
-            - StripPrefix=1
-
-        - id: file-service
-          uri: lb://file-service
-          predicates:
-            - Path=/file/**
           filters:
             - StripPrefix=1
 
@@ -51,14 +44,7 @@ spring:
         - id: ai-service
           uri: lb://ai-service
           predicates:
-            - Path=/ai/**
-          filters:
-            - StripPrefix=1
-
-        - id: knowledge-service
-          uri: lb://knowledge-service
-          predicates:
-            - Path=/knowledge/**
+            - Path=/ai/**,/knowledge/**
           filters:
             - StripPrefix=1
 

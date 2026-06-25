@@ -54,7 +54,7 @@ ai:
     embedding-provider: ollama
     config:
       ollama:
-        base-url: http://192.168.9.95:11434
+        base-url: http://116.198.232.52:11434
         model: nomic-embed-text
         api-key: ''
 

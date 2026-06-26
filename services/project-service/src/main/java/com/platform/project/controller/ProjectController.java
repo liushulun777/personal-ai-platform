@@ -2,6 +2,7 @@ package com.platform.project.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.project.domain.dto.ProjectCreateDTO;
 import com.platform.project.domain.dto.ProjectQueryDTO;
 import com.platform.project.domain.dto.ProjectUpdateDTO;
@@ -41,6 +42,7 @@ public class ProjectController {
         return Result.success(vo);
     }
 
+    @RequirePermission("project:project:add")
     @Operation(summary = "创建项目")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody ProjectCreateDTO dto) {
@@ -48,6 +50,7 @@ public class ProjectController {
         return Result.success(id);
     }
 
+    @RequirePermission("project:project:edit")
     @Operation(summary = "更新项目")
     @PutMapping
     public Result<Void> update(@Valid @RequestBody ProjectUpdateDTO dto) {
@@ -55,6 +58,7 @@ public class ProjectController {
         return Result.success();
     }
 
+    @RequirePermission("project:project:delete")
     @Operation(summary = "删除项目")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -62,6 +66,7 @@ public class ProjectController {
         return Result.success();
     }
 
+    @RequirePermission("project:project:edit")
     @Operation(summary = "AI拆分任务")
     @PostMapping("/{id}/ai-decompose")
     public Result<List<Long>> aiDecomposeTasks(@PathVariable Long id, @RequestBody Map<String, Object> body) {
@@ -77,6 +82,7 @@ public class ProjectController {
         return Result.success(taskIds);
     }
 
+    @RequirePermission("project:project:edit")
     @Operation(summary = "发布项目", description = "发布项目并自动触发 AI 拆分任务和 Agent 执行")
     @PostMapping("/{id}/publish")
     public Result<Map<String, Object>> publishProject(@PathVariable Long id, @RequestBody Map<String, Object> body) {

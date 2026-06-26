@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication
 @EnableDiscoveryClient
-@MapperScan("com.platform.mcp.mapper")
+@MapperScan({"com.platform.mcp.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.mcp", "com.platform.common"})
 public class McpApplication {
 

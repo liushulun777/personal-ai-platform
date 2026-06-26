@@ -64,7 +64,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 .map(Embedding::getChunkId)
                 .collect(Collectors.toList());
 
-        Map<Long, Chunk> chunkMap = chunkMapper.selectBatchIds(chunkIds).stream()
+        Map<Long, Chunk> chunkMap = chunkMapper.selectByIds(chunkIds).stream()
                 .collect(Collectors.toMap(Chunk::getId, c -> c));
 
         List<Long> documentIds = similarEmbeddings.stream()
@@ -72,7 +72,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        Map<Long, Document> documentMap = documentMapper.selectBatchIds(documentIds).stream()
+        Map<Long, Document> documentMap = documentMapper.selectByIds(documentIds).stream()
                 .collect(Collectors.toMap(Document::getId, d -> d));
 
         // 4. 构建上下文

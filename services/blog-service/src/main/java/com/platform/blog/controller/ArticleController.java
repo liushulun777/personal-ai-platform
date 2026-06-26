@@ -8,6 +8,7 @@ import com.platform.blog.domain.vo.ArticleVO;
 import com.platform.blog.service.ArticleService;
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,6 +40,7 @@ public class ArticleController {
         return Result.success(detailVO);
     }
 
+    @RequirePermission("blog:article:add")
     @Operation(summary = "创建文章")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody ArticleCreateDTO createDTO) {
@@ -46,6 +48,7 @@ public class ArticleController {
         return Result.success(articleId);
     }
 
+    @RequirePermission("blog:article:edit")
     @Operation(summary = "更新文章")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody ArticleUpdateDTO updateDTO) {
@@ -53,6 +56,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @RequirePermission("blog:article:delete")
     @Operation(summary = "删除文章")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -60,6 +64,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @RequirePermission("blog:article:publish")
     @Operation(summary = "发布文章")
     @PutMapping("/{id}/publish")
     public Result<Void> publish(@PathVariable Long id) {
@@ -67,6 +72,7 @@ public class ArticleController {
         return Result.success();
     }
 
+    @RequirePermission("blog:article:publish")
     @Operation(summary = "归档文章")
     @PutMapping("/{id}/archive")
     public Result<Void> archive(@PathVariable Long id) {

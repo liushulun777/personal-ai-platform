@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { NTag, NImage } from 'naive-ui'
+import { Eye, Heart } from 'lucide-vue-next'
 import type { ArticleVO } from '@/api/article'
 
 defineProps<{
@@ -87,8 +88,14 @@ function formatDate(date: string | null | undefined) {
       <div class="flex items-center justify-between text-[11px]" style="color: var(--text-faint)">
         <span>{{ formatDate(article.publishTime || article.createTime) }}</span>
         <div class="flex items-center gap-3">
-          <span>{{ article.viewCount }} 阅读</span>
-          <span>{{ article.likeCount }} 赞</span>
+          <span class="flex items-center gap-1">
+            <Eye :size="11" :stroke-width="1.5" />
+            {{ article.viewCount }}
+          </span>
+          <span class="flex items-center gap-1">
+            <Heart :size="11" :stroke-width="1.5" />
+            {{ article.likeCount }}
+          </span>
         </div>
       </div>
     </div>

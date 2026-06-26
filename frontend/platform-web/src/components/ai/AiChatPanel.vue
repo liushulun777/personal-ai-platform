@@ -110,7 +110,7 @@ const emit = defineEmits<{
 const messages = ref<MessageVO[]>([])
 const inputMessage = ref('')
 const chatLoading = ref(false)
-const conversationId = ref<number | undefined>()
+const conversationId = ref<number | string | undefined>()
 const currentModel = ref('mimo')
 const modelOptions = ref<{ label: string; value: string }[]>([])
 const messagesRef = ref<HTMLElement>()
@@ -203,7 +203,7 @@ async function handleSend() {
       // 处理 conversationId 事件
       if (text.startsWith('conversationId:')) {
         const newId = text.split(':')[1]
-        conversationId.value = Number(newId)
+        conversationId.value = newId
         emit('conversationCreated', newId)
         return
       }

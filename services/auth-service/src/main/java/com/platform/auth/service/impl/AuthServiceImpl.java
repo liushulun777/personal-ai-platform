@@ -1,5 +1,6 @@
 package com.platform.auth.service.impl;
 
+import cn.dev33.satoken.stp.StpInterface;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -7,16 +8,16 @@ import com.platform.auth.domain.dto.LoginDTO;
 import com.platform.auth.domain.dto.RegisterDTO;
 import com.platform.auth.domain.entity.SysMenu;
 import com.platform.auth.domain.entity.SysRole;
-import com.platform.auth.domain.entity.SysRoleMenu;
 import com.platform.auth.domain.entity.SysUser;
-import com.platform.auth.domain.entity.SysUserRole;
 import com.platform.auth.domain.vo.LoginVO;
 import com.platform.auth.domain.vo.UserInfoVO;
 import com.platform.auth.mapper.SysMenuMapper;
 import com.platform.auth.mapper.SysRoleMapper;
-import com.platform.auth.mapper.SysRoleMenuMapper;
 import com.platform.auth.mapper.SysUserMapper;
-import com.platform.auth.mapper.SysUserRoleMapper;
+import com.platform.common.core.entity.SysRoleMenu;
+import com.platform.common.core.entity.SysUserRole;
+import com.platform.common.core.mapper.SysRoleMenuMapper;
+import com.platform.common.core.mapper.SysUserRoleMapper;
 import com.platform.auth.service.AuthService;
 import com.platform.common.core.constant.CommonConstant;
 import com.platform.common.core.exception.BusinessException;
@@ -116,6 +117,12 @@ public class AuthServiceImpl implements AuthService {
         user.setStatus(CommonConstant.STATUS_ENABLED);
 
         sysUserMapper.insert(user);
+
+        // 注册用户默认赋予作者角色
+        SysUserRole userRole = new SysUserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(2L); // AUTHOR 角色
+        sysUserRoleMapper.insert(userRole);
     }
 
     @Override
@@ -164,7 +171,7 @@ public class AuthServiceImpl implements AuthService {
                 .map(SysUserRole::getRoleId)
                 .collect(Collectors.toList());
 
-        List<SysRole> roles = sysRoleMapper.selectBatchIds(roleIds);
+        List<SysRole> roles = sysRoleMapper.selectByIds(roleIds);
 
         return roles.stream()
                 .map(SysRole::getRoleKey)
@@ -202,11 +209,11 @@ public class AuthServiceImpl implements AuthService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        List<SysMenu> menus = sysMenuMapper.selectBatchIds(menuIds);
+        List<SysMenu> menus = sysMenuMapper.selectByIds(menuIds);
 
         return menus.stream()
-                .filter(menu -> StringUtils.hasText(menu.getPermission()))
                 .map(SysMenu::getPermission)
+                .filter(StringUtils::hasText)
                 .distinct()
                 .collect(Collectors.toList());
     }

@@ -5,6 +5,19 @@ const service = axios.create({
   timeout: 30000
 })
 
+// Request interceptor — inject token
+service.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('blog-token')
+    if (token) {
+      config.headers['Authorization'] = token
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Response interceptor
 service.interceptors.response.use(
   (response) => {
     const res = response.data
@@ -14,6 +27,10 @@ service.interceptors.response.use(
     return response
   },
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('blog-token')
+      // Don't redirect automatically on blog — just clear token
+    }
     return Promise.reject(error)
   }
 )

@@ -47,7 +47,7 @@ const formRef = ref<FormInst | null>(null)
 const executingTaskId = ref<number | null>(null)
 
 const queryParams = ref({
-  projectId: route.query.projectId ? Number(route.query.projectId) : null as number | null,
+  projectId: route.query.projectId ? route.query.projectId as string : null as string | null,
   title: '',
   status: null as number | null,
   priority: null as number | null

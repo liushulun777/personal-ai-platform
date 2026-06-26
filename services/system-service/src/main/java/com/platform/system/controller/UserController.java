@@ -2,6 +2,7 @@ package com.platform.system.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.system.domain.dto.UserCreateDTO;
 import com.platform.system.domain.dto.UserQueryDTO;
 import com.platform.system.domain.dto.UserStatusDTO;
@@ -28,6 +29,7 @@ public class UserController {
 
     private final UserService userService;
 
+    @RequirePermission("system:user:list")
     @Operation(summary = "分页查询用户")
     @GetMapping
     public Result<PageResult<UserVO>> page(UserQueryDTO queryDTO) {
@@ -42,6 +44,7 @@ public class UserController {
         return Result.success(detailVO);
     }
 
+    @RequirePermission("system:user:add")
     @Operation(summary = "创建用户")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody UserCreateDTO createDTO) {
@@ -49,6 +52,7 @@ public class UserController {
         return Result.success(userId);
     }
 
+    @RequirePermission("system:user:edit")
     @Operation(summary = "更新用户")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO updateDTO) {
@@ -56,6 +60,7 @@ public class UserController {
         return Result.success();
     }
 
+    @RequirePermission("system:user:delete")
     @Operation(summary = "删除用户")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -63,6 +68,7 @@ public class UserController {
         return Result.success();
     }
 
+    @RequirePermission("system:user:edit")
     @Operation(summary = "修改用户状态")
     @PutMapping("/{id}/status")
     public Result<Void> updateStatus(@PathVariable Long id, @Valid @RequestBody UserStatusDTO statusDTO) {
@@ -70,6 +76,7 @@ public class UserController {
         return Result.success();
     }
 
+    @RequirePermission("system:user:edit")
     @Operation(summary = "分配角色")
     @PutMapping("/{id}/roles")
     public Result<Void> assignRoles(@PathVariable Long id, @RequestBody List<Long> roleIds) {

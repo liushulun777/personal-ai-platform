@@ -5,6 +5,7 @@ import com.platform.blog.domain.dto.TagUpdateDTO;
 import com.platform.blog.domain.vo.TagVO;
 import com.platform.blog.service.TagService;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,6 +39,7 @@ public class TagController {
         return Result.success(tagVO);
     }
 
+    @RequirePermission("blog:tag:add")
     @Operation(summary = "创建标签")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody TagCreateDTO createDTO) {
@@ -45,6 +47,7 @@ public class TagController {
         return Result.success(tagId);
     }
 
+    @RequirePermission("blog:tag:edit")
     @Operation(summary = "更新标签")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody TagUpdateDTO updateDTO) {
@@ -52,6 +55,7 @@ public class TagController {
         return Result.success();
     }
 
+    @RequirePermission("blog:tag:delete")
     @Operation(summary = "删除标签")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

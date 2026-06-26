@@ -2,6 +2,7 @@ package com.platform.project.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.project.domain.dto.TaskCreateDTO;
 import com.platform.project.domain.dto.TaskQueryDTO;
 import com.platform.project.domain.dto.TaskUpdateDTO;
@@ -43,6 +44,7 @@ public class TaskController {
         return Result.success(vo);
     }
 
+    @RequirePermission("project:task:add")
     @Operation(summary = "创建任务")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody TaskCreateDTO dto) {
@@ -50,6 +52,7 @@ public class TaskController {
         return Result.success(id);
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "更新任务")
     @PutMapping
     public Result<Void> update(@Valid @RequestBody TaskUpdateDTO dto) {
@@ -57,6 +60,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:delete")
     @Operation(summary = "删除任务")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -66,6 +70,7 @@ public class TaskController {
 
     // ==================== 任务流转接口 ====================
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "开始任务", description = "BACKLOG/READY -> DOING")
     @PostMapping("/{id}/start")
     public Result<Void> start(@PathVariable Long id) {
@@ -73,6 +78,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "完成任务", description = "DOING/REVIEW -> DONE")
     @PostMapping("/{id}/complete")
     public Result<Void> complete(@PathVariable Long id) {
@@ -80,6 +86,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "分配任务")
     @PostMapping("/{id}/assign")
     public Result<Void> assign(@PathVariable Long id, @RequestParam Long assigneeId) {
@@ -87,6 +94,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "阻塞任务", description = "DOING -> BLOCKED")
     @PostMapping("/{id}/block")
     public Result<Void> block(@PathVariable Long id, @RequestParam String reason) {
@@ -94,6 +102,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "移动任务状态")
     @PostMapping("/{id}/move")
     public Result<Void> move(@PathVariable Long id, @RequestParam Integer targetStatus) {
@@ -101,6 +110,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "提交审核", description = "DOING -> REVIEW")
     @PostMapping("/{id}/submit-review")
     public Result<Void> submitReview(@PathVariable Long id) {
@@ -108,6 +118,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "审核通过", description = "REVIEW -> DONE")
     @PostMapping("/{id}/approve")
     public Result<Void> approve(@PathVariable Long id) {
@@ -115,6 +126,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "审核拒绝", description = "REVIEW -> DOING")
     @PostMapping("/{id}/reject")
     public Result<Void> reject(@PathVariable Long id, @RequestParam String reason) {
@@ -122,6 +134,7 @@ public class TaskController {
         return Result.success();
     }
 
+    @RequirePermission("project:task:edit")
     @Operation(summary = "解除阻塞", description = "BLOCKED -> DOING")
     @PostMapping("/{id}/unblock")
     public Result<Void> unblock(@PathVariable Long id) {

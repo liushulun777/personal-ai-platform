@@ -5,6 +5,7 @@ import com.platform.auth.domain.dto.RegisterDTO;
 import com.platform.auth.domain.vo.LoginVO;
 import com.platform.auth.domain.vo.UserInfoVO;
 import com.platform.auth.service.AuthService;
+import com.platform.common.core.annotation.OperationLog;
 import com.platform.common.core.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,7 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @OperationLog(module = "用户", operation = "登录")
     @Operation(summary = "用户登录")
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
@@ -30,6 +32,7 @@ public class AuthController {
         return Result.success(loginVO);
     }
 
+    @OperationLog(module = "用户", operation = "注册")
     @Operation(summary = "用户注册")
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterDTO registerDTO) {
@@ -37,6 +40,7 @@ public class AuthController {
         return Result.success();
     }
 
+    @OperationLog(module = "用户", operation = "退出登录")
     @Operation(summary = "退出登录")
     @PostMapping("/logout")
     public Result<Void> logout() {

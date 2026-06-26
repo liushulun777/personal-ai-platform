@@ -1,5 +1,6 @@
 package com.platform.agent.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.platform.agent.client.ProjectServiceClient;
 import com.platform.agent.config.AgentConfig;
 import com.platform.agent.config.FeignAuthConfig;
@@ -106,9 +107,7 @@ public class AgentServiceImpl implements AgentService {
 
                 // 获取配置的超时时间
                 Duration timeout = getTaskTimeout(taskId);
-                return taskTimeoutService.executeWithTimeout(taskId, () -> {
-                    return doExecuteTask(taskId, authToken, executionId);
-                }, timeout);
+                return taskTimeoutService.executeWithTimeout(taskId, () -> doExecuteTask(taskId, executionId), timeout);
             } finally {
                 // 清除 Token 并移除执行中标记
                 FeignAuthConfig.clearToken();
@@ -127,7 +126,7 @@ public class AgentServiceImpl implements AgentService {
      */
     private String getCurrentToken() {
         try {
-            return cn.dev33.satoken.stp.StpUtil.getTokenValue();
+            return StpUtil.getTokenValue();
         } catch (Exception e) {
             log.debug("获取 Token 失败: {}", e.getMessage());
             return null;
@@ -137,7 +136,7 @@ public class AgentServiceImpl implements AgentService {
     /**
      * 同步执行任务（用于项目级任务顺序执行）
      */
-    private TaskExecutionResult executeTaskSync(Long taskId, String token) {
+    private TaskExecutionResult executeTaskSync(Long taskId) {
         // 检查依赖任务是否完成
         String dependencyError = checkDependencies(taskId);
         if (dependencyError != null) {
@@ -160,7 +159,7 @@ public class AgentServiceImpl implements AgentService {
         try {
             Duration timeout = getTaskTimeout(taskId);
             return taskTimeoutService.executeWithTimeout(taskId, () -> {
-                return doExecuteTask(taskId, token, executionId);
+                return doExecuteTask(taskId, executionId);
             }, timeout);
         } finally {
             executingTasks.remove(taskId);
@@ -233,7 +232,7 @@ public class AgentServiceImpl implements AgentService {
     /**
      * 实际执行任务逻辑
      */
-    private TaskExecutionResult doExecuteTask(Long taskId, String token, Long executionId) {
+    private TaskExecutionResult doExecuteTask(Long taskId, Long executionId) {
         log.info("开始执行任务, taskId: {}, executionId: {}", taskId, executionId);
         long startTime = System.currentTimeMillis();
 
@@ -514,7 +513,7 @@ public class AgentServiceImpl implements AgentService {
             }
         }
 
-        if (result.length() == 0) {
+        if (result.isEmpty()) {
             result.append("静态分析通过");
         }
 
@@ -657,7 +656,7 @@ public class AgentServiceImpl implements AgentService {
                 try {
                     log.info("执行任务, taskId: {}", taskId);
                     // 使用同步执行，确保任务按顺序完成
-                    TaskExecutionResult taskResult = executeTaskSync(taskId, null);
+                    TaskExecutionResult taskResult = executeTaskSync(taskId);
                     if (taskResult.isSuccess()) {
                         executedCount++;
                     } else {

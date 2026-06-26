@@ -1,6 +1,7 @@
 package com.platform.system.controller;
 
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.system.domain.dto.MenuCreateDTO;
 import com.platform.system.domain.dto.MenuUpdateDTO;
 import com.platform.system.domain.vo.MenuVO;
@@ -24,6 +25,7 @@ public class MenuController {
 
     private final MenuService menuService;
 
+    @RequirePermission("system:menu:list")
     @Operation(summary = "获取菜单树形列表")
     @GetMapping("/tree")
     public Result<List<MenuVO>> tree() {
@@ -31,6 +33,7 @@ public class MenuController {
         return Result.success(tree);
     }
 
+    @RequirePermission("system:menu:list")
     @Operation(summary = "获取菜单详情")
     @GetMapping("/{id}")
     public Result<MenuVO> getById(@PathVariable Long id) {
@@ -38,6 +41,7 @@ public class MenuController {
         return Result.success(menuVO);
     }
 
+    @RequirePermission("system:menu:add")
     @Operation(summary = "创建菜单")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody MenuCreateDTO createDTO) {
@@ -45,6 +49,7 @@ public class MenuController {
         return Result.success(menuId);
     }
 
+    @RequirePermission("system:menu:edit")
     @Operation(summary = "更新菜单")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody MenuUpdateDTO updateDTO) {
@@ -52,6 +57,7 @@ public class MenuController {
         return Result.success();
     }
 
+    @RequirePermission("system:menu:delete")
     @Operation(summary = "删除菜单")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

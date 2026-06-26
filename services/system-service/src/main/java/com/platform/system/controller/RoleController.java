@@ -2,6 +2,7 @@ package com.platform.system.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.system.domain.dto.RoleCreateDTO;
 import com.platform.system.domain.dto.RoleQueryDTO;
 import com.platform.system.domain.dto.RoleUpdateDTO;
@@ -27,6 +28,7 @@ public class RoleController {
 
     private final RoleService roleService;
 
+    @RequirePermission("system:role:list")
     @Operation(summary = "分页查询角色")
     @GetMapping
     public Result<PageResult<RoleVO>> page(RoleQueryDTO queryDTO) {
@@ -48,6 +50,7 @@ public class RoleController {
         return Result.success(detailVO);
     }
 
+    @RequirePermission("system:role:add")
     @Operation(summary = "创建角色")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody RoleCreateDTO createDTO) {
@@ -55,6 +58,7 @@ public class RoleController {
         return Result.success(roleId);
     }
 
+    @RequirePermission("system:role:edit")
     @Operation(summary = "更新角色")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody RoleUpdateDTO updateDTO) {
@@ -62,6 +66,7 @@ public class RoleController {
         return Result.success();
     }
 
+    @RequirePermission("system:role:delete")
     @Operation(summary = "删除角色")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -69,6 +74,7 @@ public class RoleController {
         return Result.success();
     }
 
+    @RequirePermission("system:role:edit")
     @Operation(summary = "分配菜单")
     @PutMapping("/{id}/menus")
     public Result<Void> assignMenus(@PathVariable Long id, @RequestBody List<Long> menuIds) {

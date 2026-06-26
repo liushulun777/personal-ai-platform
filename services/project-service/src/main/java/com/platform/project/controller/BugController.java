@@ -2,6 +2,7 @@ package com.platform.project.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.project.domain.dto.BugCreateDTO;
 import com.platform.project.domain.dto.BugQueryDTO;
 import com.platform.project.domain.dto.BugUpdateDTO;
@@ -38,6 +39,7 @@ public class BugController {
         return Result.success(vo);
     }
 
+    @RequirePermission("project:bug:add")
     @Operation(summary = "创建Bug")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody BugCreateDTO dto) {
@@ -45,6 +47,7 @@ public class BugController {
         return Result.success(id);
     }
 
+    @RequirePermission("project:bug:edit")
     @Operation(summary = "更新Bug")
     @PutMapping
     public Result<Void> update(@Valid @RequestBody BugUpdateDTO dto) {
@@ -52,6 +55,7 @@ public class BugController {
         return Result.success();
     }
 
+    @RequirePermission("project:bug:delete")
     @Operation(summary = "删除Bug")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

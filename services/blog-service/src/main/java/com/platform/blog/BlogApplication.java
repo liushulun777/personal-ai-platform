@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication
 @EnableDiscoveryClient
-@MapperScan("com.platform.blog.mapper")
+@MapperScan({"com.platform.blog.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.blog", "com.platform.common"})
 public class BlogApplication {
 

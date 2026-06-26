@@ -2,6 +2,7 @@ package com.platform.mcp.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.mcp.domain.dto.McpServerCreateDTO;
 import com.platform.mcp.domain.dto.McpServerQueryDTO;
 import com.platform.mcp.domain.dto.McpServerUpdateDTO;
@@ -25,12 +26,14 @@ public class McpServerController {
 
     private final McpServerService mcpServerService;
 
+    @RequirePermission("mcp:server:add")
     @Operation(summary = "注册MCP服务")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody McpServerCreateDTO dto) {
         return Result.success(mcpServerService.create(dto));
     }
 
+    @RequirePermission("mcp:server:edit")
     @Operation(summary = "更新MCP服务")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody McpServerUpdateDTO dto) {
@@ -38,6 +41,7 @@ public class McpServerController {
         return Result.success();
     }
 
+    @RequirePermission("mcp:server:delete")
     @Operation(summary = "删除MCP服务")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -57,6 +61,7 @@ public class McpServerController {
         return Result.success(mcpServerService.page(queryDTO));
     }
 
+    @RequirePermission("mcp:server:edit")
     @Operation(summary = "启用MCP服务")
     @PutMapping("/{id}/enable")
     public Result<Void> enable(@PathVariable Long id) {
@@ -64,6 +69,7 @@ public class McpServerController {
         return Result.success();
     }
 
+    @RequirePermission("mcp:server:edit")
     @Operation(summary = "禁用MCP服务")
     @PutMapping("/{id}/disable")
     public Result<Void> disable(@PathVariable Long id) {

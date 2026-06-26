@@ -61,7 +61,8 @@ onMounted(() => {
       </NButton>
     </div>
 
-    <h1 class="text-2xl font-bold mb-10" style="color: var(--text-primary)">分类文章</h1>
+    <h1 class="text-2xl font-bold mb-3"><span class="gradient-text">分类文章</span></h1>
+    <div class="w-12 h-0.5 rounded-full mb-10" style="background: var(--accent-gradient)" />
 
     <NSpin :show="loading">
       <div v-if="articles.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

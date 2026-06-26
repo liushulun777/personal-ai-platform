@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { NCard, NGrid, NGi, NStatistic, NSpin } from 'naive-ui'
+import {NGrid, NGi, NSpin } from 'naive-ui'
 import { getBlogStatistics } from '@/api/statistics'
 import type { BlogStatisticsVO } from '@/api/statistics'
 
@@ -13,6 +13,23 @@ const stats = ref<BlogStatisticsVO>({
   totalViews: 0,
   totalLikes: 0
 })
+
+interface StatCard {
+  label: string
+  key: keyof BlogStatisticsVO
+  icon: string
+  gradient: string
+  glow: string
+}
+
+const statCards: StatCard[] = [
+  { label: '文章总数', key: 'articleCount', icon: '&#128196;', gradient: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', glow: 'rgba(99,102,241,0.2)' },
+  { label: '分类数量', key: 'categoryCount', icon: '&#128193;', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', glow: 'rgba(139,92,246,0.2)' },
+  { label: '标签数量', key: 'tagCount', icon: '&#127991;', gradient: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)', glow: 'rgba(236,72,153,0.2)' },
+  { label: '评论数量', key: 'commentCount', icon: '&#128172;', gradient: 'linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%)', glow: 'rgba(20,184,166,0.2)' },
+  { label: '总浏览量', key: 'totalViews', icon: '&#128065;', gradient: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', glow: 'rgba(245,158,11,0.2)' },
+  { label: '总点赞数', key: 'totalLikes', icon: '&#9829;', gradient: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)', glow: 'rgba(239,68,68,0.2)' }
+]
 
 async function loadStatistics() {
   loading.value = true
@@ -32,54 +49,76 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <h2 class="text-lg font-semibold mb-6" style="color: var(--text-primary)">仪表盘</h2>
+  <div class="animate-fade-in">
+    <!-- Welcome Section -->
+    <div
+      class="mb-8 p-6 rounded-2xl relative overflow-hidden"
+      style="background: var(--accent-gradient-subtle); border: 1px solid var(--border-color)"
+    >
+      <!-- Decorative elements -->
+      <div
+        class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-20"
+        style="background: var(--accent-gradient); filter: blur(40px)"
+      />
+      <div
+        class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-15"
+        style="background: var(--accent-gradient); filter: blur(30px)"
+      />
+
+      <div class="relative">
+        <h2 class="text-xl font-extrabold mb-2">
+          <span class="gradient-text">仪表盘</span>
+        </h2>
+        <p class="text-sm" style="color: var(--text-muted)">
+          欢迎使用 Personal AI Platform，这里是您的数据概览。
+        </p>
+      </div>
+    </div>
 
     <NSpin :show="loading">
+      <!-- Stat Cards -->
       <NGrid :cols="3" :x-gap="16" :y-gap="16">
-        <NGi>
-          <NCard content-style="padding: 20px;">
-            <NStatistic label="文章总数" :value="stats.articleCount" />
-          </NCard>
-        </NGi>
-        <NGi>
-          <NCard content-style="padding: 20px;">
-            <NStatistic label="分类数量" :value="stats.categoryCount" />
-          </NCard>
-        </NGi>
-        <NGi>
-          <NCard content-style="padding: 20px;">
-            <NStatistic label="标签数量" :value="stats.tagCount" />
-          </NCard>
-        </NGi>
-        <NGi>
-          <NCard content-style="padding: 20px;">
-            <NStatistic label="评论数量" :value="stats.commentCount" />
-          </NCard>
-        </NGi>
-        <NGi>
-          <NCard content-style="padding: 20px;">
-            <NStatistic label="总浏览量" :value="stats.totalViews" />
-          </NCard>
-        </NGi>
-        <NGi>
-          <NCard content-style="padding: 20px;">
-            <NStatistic label="总点赞数" :value="stats.totalLikes" />
-          </NCard>
+        <NGi v-for="card in statCards" :key="card.key">
+          <div
+            class="group rounded-xl p-5 transition-all duration-300 hover:-translate-y-0.5 cursor-default"
+            :style="{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-sm)'
+            }"
+            @mouseenter="($event.currentTarget as HTMLElement).style.boxShadow = `0 4px 20px ${card.glow}`"
+            @mouseleave="($event.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)'"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-2xl" v-html="card.icon" />
+              <div
+                class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg font-bold"
+                :style="{ background: card.gradient, boxShadow: `0 4px 12px ${card.glow}` }"
+              >
+                <span v-html="card.icon" />
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold mb-1" style="color: var(--text-primary)">
+              {{ stats[card.key] }}
+            </div>
+            <div class="text-xs font-medium" style="color: var(--text-muted)">
+              {{ card.label }}
+            </div>
+          </div>
         </NGi>
       </NGrid>
     </NSpin>
 
-    <NCard class="mt-6" content-style="padding: 24px;">
-      <template #header>
-        <span class="text-sm font-medium" style="color: var(--text-secondary)">欢迎使用 Personal AI Platform</span>
-      </template>
+    <!-- Info Card -->
+    <div
+      class="mt-8 p-6 rounded-2xl"
+      style="background: var(--bg-card); border: 1px solid var(--border-color)"
+    >
+      <h3 class="text-sm font-bold mb-3 gradient-text">关于平台</h3>
       <p class="text-sm leading-relaxed" style="color: var(--text-muted)">
-        这是一个长期演进的个人技术中台项目，当前处于 Phase1：博客系统阶段。
-      </p>
-      <p class="text-sm mt-2" style="color: var(--text-faint)">
+        这是一个长期演进的个人技术中台项目，集成博客管理、知识库、AI 助手、项目管理等模块。
         使用左侧菜单开始管理您的内容。
       </p>
-    </NCard>
+    </div>
   </div>
 </template>

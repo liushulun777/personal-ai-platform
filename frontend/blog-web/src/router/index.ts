@@ -30,6 +30,18 @@ const router = createRouter({
           name: 'Tag',
           component: () => import('@/views/TagView.vue'),
           meta: { title: '标签' }
+        },
+        {
+          path: 'login',
+          name: 'Login',
+          component: () => import('@/views/LoginView.vue'),
+          meta: { title: '登录' }
+        },
+        {
+          path: 'search',
+          name: 'Search',
+          component: () => import('@/views/SearchView.vue'),
+          meta: { title: '搜索' }
         }
       ]
     }

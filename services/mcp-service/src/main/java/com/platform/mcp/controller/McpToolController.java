@@ -2,6 +2,7 @@ package com.platform.mcp.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.mcp.domain.dto.McpToolCreateDTO;
 import com.platform.mcp.domain.dto.McpToolInvokeDTO;
 import com.platform.mcp.domain.dto.McpToolQueryDTO;
@@ -26,12 +27,14 @@ public class McpToolController {
 
     private final McpToolService mcpToolService;
 
+    @RequirePermission("mcp:tool:add")
     @Operation(summary = "创建工具")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody McpToolCreateDTO dto) {
         return Result.success(mcpToolService.create(dto));
     }
 
+    @RequirePermission("mcp:tool:delete")
     @Operation(summary = "删除工具")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -51,12 +54,14 @@ public class McpToolController {
         return Result.success(mcpToolService.page(queryDTO));
     }
 
+    @RequirePermission("mcp:tool:invoke")
     @Operation(summary = "调用工具")
     @PostMapping("/invoke")
     public Result<Map<String, Object>> invoke(@Valid @RequestBody McpToolInvokeDTO dto) {
         return Result.success(mcpToolService.invoke(dto));
     }
 
+    @RequirePermission("mcp:tool:edit")
     @Operation(summary = "从MCP Server同步工具列表")
     @PostMapping("/sync/{serverId}")
     public Result<Void> syncFromServer(@PathVariable Long serverId) {

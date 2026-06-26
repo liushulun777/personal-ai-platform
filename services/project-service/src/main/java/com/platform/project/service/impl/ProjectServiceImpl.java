@@ -152,7 +152,7 @@ public class ProjectServiceImpl implements ProjectService {
         List<Long> taskIds = aiDecomposeTasks(projectId, content, techStack, 10, "medium");
 
         // 4. 获取任务列表并按顺序发送 Kafka 事件
-        List<Task> tasks = taskMapper.selectBatchIds(taskIds);
+        List<Task> tasks = taskMapper.selectByIds(taskIds);
 
         // 按 sortOrder 排序
         tasks.sort(Comparator.comparingInt(t -> t.getSortOrder() != null ? t.getSortOrder() : Integer.MAX_VALUE));

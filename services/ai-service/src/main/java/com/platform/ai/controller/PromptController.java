@@ -5,6 +5,7 @@ import com.platform.ai.domain.vo.PromptVO;
 import com.platform.ai.service.PromptService;
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -57,6 +58,7 @@ public class PromptController {
     /**
      * 创建Prompt模板
      */
+    @RequirePermission("ai:prompt:add")
     @Operation(summary = "创建模板", description = "创建新的Prompt模板")
     @PostMapping
     public Result<PromptVO> createPrompt(@Valid @RequestBody PromptCreateDTO dto) {
@@ -66,6 +68,7 @@ public class PromptController {
     /**
      * 更新Prompt模板
      */
+    @RequirePermission("ai:prompt:edit")
     @Operation(summary = "更新模板", description = "更新指定的Prompt模板")
     @PutMapping("/{id}")
     public Result<PromptVO> updatePrompt(@PathVariable Long id, @Valid @RequestBody PromptCreateDTO dto) {
@@ -75,6 +78,7 @@ public class PromptController {
     /**
      * 删除Prompt模板
      */
+    @RequirePermission("ai:prompt:delete")
     @Operation(summary = "删除模板", description = "删除指定的Prompt模板")
     @DeleteMapping("/{id}")
     public Result<Void> deletePrompt(@PathVariable Long id) {

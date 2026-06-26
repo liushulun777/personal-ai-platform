@@ -16,7 +16,7 @@ import org.springframework.context.annotation.ComponentScan;
 })
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.platform.ai.feign")
-@MapperScan("com.platform.ai.mapper")
+@MapperScan({"com.platform.ai.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.ai", "com.platform.common"})
 public class AiApplication {
 

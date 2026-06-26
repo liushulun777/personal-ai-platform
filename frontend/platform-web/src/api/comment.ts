@@ -16,8 +16,8 @@ export interface CommentVO {
 }
 
 export interface CommentCreateParams {
-  articleId: number
-  parentId?: number
+  articleId: number | string
+  parentId?: number | string
   content: string
 }
 

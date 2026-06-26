@@ -14,7 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
         org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
 })
 @EnableDiscoveryClient
-@MapperScan("com.platform.project.mapper")
+@MapperScan({"com.platform.project.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.project", "com.platform.common"})
 public class ProjectApplication {
 

@@ -91,6 +91,12 @@ const routes: RouteRecordRaw[] = [
             name: 'TagList',
             component: () => import('@/modules/blog/views/TagListView.vue'),
             meta: { title: '标签管理', requiresAuth: true }
+          },
+          {
+            path: 'search',
+            name: 'ArticleSearch',
+            component: () => import('@/modules/blog/views/SearchView.vue'),
+            meta: { title: '文章搜索', requiresAuth: true }
           }
         ]
       },

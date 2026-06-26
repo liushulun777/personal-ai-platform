@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication
 @EnableDiscoveryClient
-@MapperScan("com.platform.auth.mapper")
+@MapperScan({"com.platform.auth.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.auth", "com.platform.common"})
 public class AuthApplication {
 

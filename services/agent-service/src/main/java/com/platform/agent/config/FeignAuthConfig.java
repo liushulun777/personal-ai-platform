@@ -44,25 +44,22 @@ public class FeignAuthConfig {
 
     @Bean
     public RequestInterceptor feignRequestInterceptor() {
-        return new RequestInterceptor() {
-            @Override
-            public void apply(RequestTemplate template) {
-                // 优先从 ThreadLocal 获取 Token（异步线程）
-                String token = getToken();
+        return template -> {
+            // 优先从 ThreadLocal 获取 Token（异步线程）
+            String token = getToken();
 
-                // 如果 ThreadLocal 没有，从当前请求获取
-                if (token == null || token.isEmpty()) {
-                    RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-                    if (requestAttributes instanceof ServletRequestAttributes) {
-                        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
-                        token = request.getHeader("Authorization");
-                    }
+            // 如果 ThreadLocal 没有，从当前请求获取
+            if (token == null || token.isEmpty()) {
+                RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+                if (requestAttributes instanceof ServletRequestAttributes) {
+                    HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+                    token = request.getHeader("Authorization");
                 }
+            }
 
-                // 传递 Authorization Header
-                if (token != null && !token.isEmpty()) {
-                    template.header("Authorization", token);
-                }
+            // 传递 Authorization Header
+            if (token != null && !token.isEmpty()) {
+                template.header("Authorization", token);
             }
         };
     }

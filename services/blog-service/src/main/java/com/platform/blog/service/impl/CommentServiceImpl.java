@@ -3,6 +3,7 @@ package com.platform.blog.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.platform.blog.client.UserServiceClient;
 import com.platform.blog.domain.dto.CommentCreateDTO;
+import com.platform.blog.domain.dto.UserDTO;
 import com.platform.blog.domain.entity.Article;
 import com.platform.blog.domain.entity.Comment;
 import com.platform.blog.domain.vo.CommentVO;
@@ -134,11 +135,11 @@ public class CommentServiceImpl implements CommentService {
         }
 
         try {
-            Map<String, Object> userInfo = userServiceClient.getUserById(userId);
-            if (userInfo != null) {
-                vo.setUsername((String) userInfo.get("username"));
-                vo.setNickname((String) userInfo.get("nickname"));
-                vo.setAvatar((String) userInfo.get("avatar"));
+            UserDTO userDTO = userServiceClient.getUserDTOById(userId);
+            if (userDTO != null) {
+                vo.setUsername(userDTO.getUsername());
+                vo.setNickname(userDTO.getNickname());
+                vo.setAvatar(userDTO.getAvatar());
             } else {
                 // 设置默认值
                 vo.setUsername("用户" + userId);

@@ -1,7 +1,7 @@
 /** AI 对话请求 */
 export interface ChatDTO {
   message: string
-  conversationId?: number
+  conversationId?: number | string
   model?: string
 }
 

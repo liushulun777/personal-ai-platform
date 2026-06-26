@@ -7,11 +7,11 @@ import com.platform.common.core.result.ResultCode;
 import com.platform.system.convert.MenuConvert;
 import com.platform.system.domain.dto.MenuCreateDTO;
 import com.platform.system.domain.dto.MenuUpdateDTO;
+import com.platform.common.core.entity.SysRoleMenu;
+import com.platform.common.core.mapper.SysRoleMenuMapper;
 import com.platform.system.domain.entity.SysMenu;
-import com.platform.system.domain.entity.SysRoleMenu;
 import com.platform.system.domain.vo.MenuVO;
 import com.platform.system.mapper.SysMenuMapper;
-import com.platform.system.mapper.SysRoleMenuMapper;
 import com.platform.system.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -136,7 +136,7 @@ public class MenuServiceImpl implements MenuService {
                 .collect(Collectors.toList());
 
         // 查询菜单
-        List<SysMenu> menus = sysMenuMapper.selectBatchIds(menuIds);
+        List<SysMenu> menus = sysMenuMapper.selectByIds(menuIds);
 
         // 提取权限标识
         return menus.stream()

@@ -52,7 +52,7 @@ ai:
         api-key: ${OPENAI_API_KEY:sk-xxx}
         model: gpt-4o
       ollama:
-        base-url: http://116.198.232.52:11434
+        base-url: http://116.198.232.52:11435
         api-key: ollama
         model: nomic-embed-text
 

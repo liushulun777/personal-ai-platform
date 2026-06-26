@@ -2,6 +2,7 @@ package com.platform.system.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.system.domain.dto.DictDataCreateDTO;
 import com.platform.system.domain.dto.DictDataQueryDTO;
 import com.platform.system.domain.dto.DictDataUpdateDTO;
@@ -47,6 +48,7 @@ public class DictDataController {
         return Result.success(vo);
     }
 
+    @RequirePermission("system:dict:add")
     @Operation(summary = "创建字典数据")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody DictDataCreateDTO createDTO) {
@@ -54,6 +56,7 @@ public class DictDataController {
         return Result.success(dictDataId);
     }
 
+    @RequirePermission("system:dict:edit")
     @Operation(summary = "更新字典数据")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody DictDataUpdateDTO updateDTO) {
@@ -61,6 +64,7 @@ public class DictDataController {
         return Result.success();
     }
 
+    @RequirePermission("system:dict:delete")
     @Operation(summary = "删除字典数据")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

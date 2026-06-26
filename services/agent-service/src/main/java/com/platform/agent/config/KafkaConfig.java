@@ -3,6 +3,7 @@ package com.platform.agent.config;
 import com.platform.agent.domain.event.TaskCreatedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -67,7 +68,7 @@ public class KafkaConfig {
         );
         errorHandler.addNotRetryableExceptions(
                 DeserializationException.class,
-                org.apache.kafka.common.errors.SerializationException.class
+                SerializationException.class
         );
         return errorHandler;
     }

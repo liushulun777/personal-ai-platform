@@ -18,7 +18,7 @@ import java.util.List;
  */
 @Tag(name = "搜索管理", description = "文章搜索相关接口")
 @RestController
-@RequestMapping("/api/search")
+@RequestMapping()
 @RequiredArgsConstructor
 public class SearchController {
 

@@ -5,6 +5,7 @@ import com.platform.blog.domain.dto.CategoryUpdateDTO;
 import com.platform.blog.domain.vo.CategoryVO;
 import com.platform.blog.service.CategoryService;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,6 +39,7 @@ public class CategoryController {
         return Result.success(categoryVO);
     }
 
+    @RequirePermission("blog:category:add")
     @Operation(summary = "创建分类")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody CategoryCreateDTO createDTO) {
@@ -45,6 +47,7 @@ public class CategoryController {
         return Result.success(categoryId);
     }
 
+    @RequirePermission("blog:category:edit")
     @Operation(summary = "更新分类")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody CategoryUpdateDTO updateDTO) {
@@ -52,6 +55,7 @@ public class CategoryController {
         return Result.success();
     }
 
+    @RequirePermission("blog:category:delete")
     @Operation(summary = "删除分类")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

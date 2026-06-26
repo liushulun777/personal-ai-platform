@@ -2,10 +2,12 @@ package com.platform.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.platform.blog.client.UserServiceClient;
 import com.platform.blog.convert.ArticleConvert;
 import com.platform.blog.domain.dto.ArticleCreateDTO;
 import com.platform.blog.domain.dto.ArticleQueryDTO;
 import com.platform.blog.domain.dto.ArticleUpdateDTO;
+import com.platform.blog.domain.dto.UserDTO;
 import com.platform.blog.domain.entity.Article;
 import com.platform.blog.domain.entity.ArticleTag;
 import com.platform.blog.domain.entity.Category;
@@ -51,6 +53,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final TagMapper tagMapper;
     private final ArticleConvert articleConvert;
     private final ArticleEventPublisher articleEventPublisher;
+    private final UserServiceClient userServiceClient;
 
     @Override
     public PageResult<ArticleVO> page(ArticleQueryDTO queryDTO) {
@@ -331,7 +334,7 @@ public class ArticleServiceImpl implements ArticleService {
             List<Long> tagIds = articleTags.stream()
                     .map(ArticleTag::getTagId)
                     .collect(Collectors.toList());
-            List<Tag> tags = tagMapper.selectBatchIds(tagIds);
+            List<Tag> tags = tagMapper.selectByIds(tagIds);
             List<TagVO> tagVOs = tags.stream()
                     .map(tag -> {
                         TagVO tagVO = new TagVO();
@@ -369,7 +372,7 @@ public class ArticleServiceImpl implements ArticleService {
                 .collect(Collectors.toList());
         Map<Long, String> categoryNameMap = Collections.emptyMap();
         if (!categoryIds.isEmpty()) {
-            categoryNameMap = categoryMapper.selectBatchIds(categoryIds).stream()
+            categoryNameMap = categoryMapper.selectByIds(categoryIds).stream()
                     .collect(Collectors.toMap(Category::getId, Category::getName));
         }
 
@@ -393,14 +396,42 @@ public class ArticleServiceImpl implements ArticleService {
                 .collect(Collectors.toList());
         Map<Long, Tag> tagMap = Collections.emptyMap();
         if (!allTagIds.isEmpty()) {
-            tagMap = tagMapper.selectBatchIds(allTagIds).stream()
+            tagMap = tagMapper.selectByIds(allTagIds).stream()
                     .collect(Collectors.toMap(Tag::getId, t -> t));
         }
 
-        // 4. 填充VO
+        // 4. 批量查询作者名称
+        List<Long> authorIds = records.stream()
+                .map(ArticleVO::getAuthorId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> authorNameMap = Collections.emptyMap();
+        if (!authorIds.isEmpty()) {
+            authorNameMap = authorIds.stream()
+                    .collect(Collectors.toMap(
+                            id -> id,
+                            id -> {
+                                try {
+                                    UserDTO user = userServiceClient.getUserDTOById(id);
+                                    return user != null ? (user.getNickname() != null ? user.getNickname() : user.getUsername()) : "未知用户";
+                                } catch (Exception e) {
+                                    return "未知用户";
+                                }
+                            }
+                    ));
+        }
+
+        // 5. 填充VO
         Map<Long, String> finalCategoryNameMap = categoryNameMap;
         Map<Long, Tag> finalTagMap = tagMap;
+        Map<Long, String> finalAuthorNameMap = authorNameMap;
         for (ArticleVO vo : records) {
+            // 填充作者名称
+            if (vo.getAuthorId() != null) {
+                vo.setAuthorName(finalAuthorNameMap.getOrDefault(vo.getAuthorId(), "未知用户"));
+            }
+
             // 填充分类名称
             if (vo.getCategoryId() != null) {
                 vo.setCategoryName(finalCategoryNameMap.get(vo.getCategoryId()));

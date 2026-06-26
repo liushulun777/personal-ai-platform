@@ -13,15 +13,15 @@ import com.platform.system.domain.dto.UserCreateDTO;
 import com.platform.system.domain.dto.UserQueryDTO;
 import com.platform.system.domain.dto.UserStatusDTO;
 import com.platform.system.domain.dto.UserUpdateDTO;
+import com.platform.common.core.entity.SysUserRole;
+import com.platform.common.core.mapper.SysUserRoleMapper;
 import com.platform.system.domain.entity.SysRole;
 import com.platform.system.domain.entity.SysUser;
-import com.platform.system.domain.entity.SysUserRole;
 import com.platform.system.domain.vo.RoleVO;
 import com.platform.system.domain.vo.UserDetailVO;
 import com.platform.system.domain.vo.UserVO;
 import com.platform.system.mapper.SysRoleMapper;
 import com.platform.system.mapper.SysUserMapper;
-import com.platform.system.mapper.SysUserRoleMapper;
 import com.platform.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -86,7 +86,7 @@ public class UserServiceImpl implements UserService {
             detailVO.setRoleIds(roleIds);
 
             // 查询角色详情
-            List<SysRole> roles = sysRoleMapper.selectBatchIds(roleIds);
+            List<SysRole> roles = sysRoleMapper.selectByIds(roleIds);
             List<RoleVO> roleVOs = userConvert.roleEntityListToVOList(roles);
             detailVO.setRoles(roleVOs);
         }

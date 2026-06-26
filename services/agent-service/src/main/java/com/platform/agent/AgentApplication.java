@@ -1,5 +1,6 @@
 package com.platform.agent;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -16,6 +17,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 @EnableDiscoveryClient
 @EnableKafka
 @EnableFeignClients(basePackages = "com.platform.agent.client")
+@MapperScan({"com.platform.agent.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.agent", "com.platform.common"})
 public class AgentApplication {
 

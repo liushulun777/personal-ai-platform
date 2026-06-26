@@ -1,5 +1,6 @@
 package com.platform.blog.client;
 
+import com.platform.blog.domain.dto.UserDTO;
 import com.platform.common.core.result.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,20 +22,22 @@ public class UserServiceClient {
 
     private final RestTemplate restTemplate;
 
+
     /**
-     * 获取用户信息
+     * 获取用户信息（返回强类型 DTO）
      */
-    public Map<String, Object> getUserById(Long userId) {
+    public UserDTO getUserDTOById(Long userId) {
         try {
             String url = "http://system-service/users/" + userId;
-            ResponseEntity<Result<Map<String, Object>>> response = restTemplate.exchange(
+            ResponseEntity<Result<UserDTO>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     null,
-                    new ParameterizedTypeReference<Result<Map<String, Object>>>() {}
+                    new ParameterizedTypeReference<>() {
+                    }
             );
 
-            Result<Map<String, Object>> result = response.getBody();
+            Result<UserDTO> result = response.getBody();
             if (result != null && result.getCode() == 200) {
                 return result.getData();
             }

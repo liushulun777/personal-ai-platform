@@ -10,18 +10,22 @@ import {
   NForm,
   NFormItem,
   NPopconfirm,
+  NTag,
   useMessage
 } from 'naive-ui'
-import { NTag } from 'naive-ui/es/tag'
 import type { DataTableColumns, FormInst, SelectOption } from 'naive-ui'
 import {
   getUserPage,
+  getUserById,
   createUser,
   updateUser,
   deleteUser,
-  updateUserStatus
+  updateUserStatus,
+  assignRoles
 } from '@/api/user'
 import type { UserVO, UserCreateParams, UserUpdateParams } from '@/api/user'
+import { getAllRoles } from '@/api/role'
+import type { RoleVO } from '@/api/role'
 
 const message = useMessage()
 const loading = ref(false)
@@ -46,14 +50,19 @@ const pagination = ref({
   pageSizes: [10, 20, 50]
 })
 
+// 角色列表
+const allRoles = ref<RoleVO[]>([])
+const roleOptions = ref<SelectOption[]>([])
+
 // 表单数据
-const formData = ref<UserCreateParams & { id?: number }>({
+const formData = ref<UserCreateParams & { id?: number; roleIds?: number[] }>({
   username: '',
   password: '',
   nickname: '',
   email: '',
   phone: '',
-  status: 1
+  status: 1,
+  roleIds: []
 })
 
 // 表单验证规则
@@ -80,13 +89,15 @@ const statusMap: Record<number, { label: string; type: 'success' | 'error' }> = 
   0: { label: '禁用', type: 'error' }
 }
 
+// 角色映射（用于表格显示）
+const roleMap = ref<Record<number, string>>({})
+
 // 表格列定义
 const columns: DataTableColumns<UserVO> = [
   { title: 'ID', key: 'id', width: 80 },
   { title: '用户名', key: 'username', width: 120 },
   { title: '昵称', key: 'nickname', width: 120 },
   { title: '邮箱', key: 'email', ellipsis: { tooltip: true } },
-  { title: '手机号', key: 'phone', width: 120 },
   {
     title: '状态',
     key: 'status',
@@ -119,6 +130,24 @@ const columns: DataTableColumns<UserVO> = [
     }
   }
 ]
+
+// 加载角色列表
+async function loadRoles() {
+  try {
+    const { data } = await getAllRoles()
+    allRoles.value = data.data || []
+    roleOptions.value = allRoles.value.map(r => ({
+      label: r.roleName,
+      value: r.id
+    }))
+    // 构建角色映射
+    allRoles.value.forEach(r => {
+      roleMap.value[r.id] = r.roleName
+    })
+  } catch {
+    // ignore
+  }
+}
 
 // 加载用户列表
 async function loadUsers() {
@@ -161,22 +190,39 @@ function handleCreate() {
     nickname: '',
     email: '',
     phone: '',
-    status: 1
+    status: 1,
+    roleIds: []
   }
   showModal.value = true
 }
 
 // 编辑用户
-function handleEdit(row: UserVO) {
+async function handleEdit(row: UserVO) {
   isEdit.value = true
-  formData.value = {
-    id: row.id,
-    username: row.username,
-    password: '',
-    nickname: row.nickname,
-    email: row.email,
-    phone: row.phone,
-    status: row.status
+  try {
+    const { data } = await getUserById(row.id)
+    const detail = data.data
+    formData.value = {
+      id: detail.id,
+      username: detail.username,
+      password: '',
+      nickname: detail.nickname,
+      email: detail.email,
+      phone: detail.phone,
+      status: detail.status,
+      roleIds: detail.roleIds || []
+    }
+  } catch {
+    formData.value = {
+      id: row.id,
+      username: row.username,
+      password: '',
+      nickname: row.nickname,
+      email: row.email,
+      phone: row.phone,
+      status: row.status,
+      roleIds: []
+    }
   }
   showModal.value = true
 }
@@ -190,12 +236,26 @@ async function handleSubmit() {
       const updateData: UserUpdateParams = {
         nickname: formData.value.nickname,
         email: formData.value.email,
-        phone: formData.value.phone
+        phone: formData.value.phone,
+        roleIds: formData.value.roleIds
       }
       await updateUser(formData.value.id, updateData)
+      // 分配角色
+      if (formData.value.roleIds) {
+        await assignRoles(formData.value.id, formData.value.roleIds)
+      }
       message.success('更新成功')
     } else {
-      await createUser(formData.value)
+      const createData: UserCreateParams = {
+        username: formData.value.username,
+        password: formData.value.password,
+        nickname: formData.value.nickname,
+        email: formData.value.email,
+        phone: formData.value.phone,
+        status: formData.value.status,
+        roleIds: formData.value.roleIds
+      }
+      await createUser(createData)
       message.success('创建成功')
     }
 
@@ -242,6 +302,7 @@ function handlePageSizeChange(pageSize: number) {
 
 onMounted(() => {
   loadUsers()
+  loadRoles()
 })
 </script>
 
@@ -303,7 +364,7 @@ onMounted(() => {
       v-model:show="showModal"
       :title="isEdit ? '编辑用户' : '新建用户'"
       preset="card"
-      style="width: 500px"
+      style="width: 560px; max-width: 90vw"
     >
       <NForm
         ref="formRef"
@@ -312,42 +373,56 @@ onMounted(() => {
         label-placement="left"
         label-width="80"
       >
-        <NFormItem label="用户名" path="username">
-          <NInput
-            v-model:value="formData.username"
-            :disabled="isEdit"
-            placeholder="请输入用户名"
-          />
-        </NFormItem>
-        <NFormItem v-if="!isEdit" label="密码" path="password">
-          <NInput
-            v-model:value="formData.password"
-            type="password"
-            placeholder="请输入密码"
-          />
-        </NFormItem>
-        <NFormItem label="昵称" path="nickname">
-          <NInput
-            v-model:value="formData.nickname"
-            placeholder="请输入昵称"
-          />
-        </NFormItem>
-        <NFormItem label="邮箱" path="email">
-          <NInput
-            v-model:value="formData.email"
-            placeholder="请输入邮箱"
-          />
-        </NFormItem>
-        <NFormItem label="手机号" path="phone">
-          <NInput
-            v-model:value="formData.phone"
-            placeholder="请输入手机号"
-          />
-        </NFormItem>
-        <NFormItem label="状态" path="status">
+        <div class="grid grid-cols-2 gap-x-4">
+          <NFormItem label="用户名" path="username">
+            <NInput
+              v-model:value="formData.username"
+              :disabled="isEdit"
+              placeholder="请输入用户名"
+            />
+          </NFormItem>
+          <NFormItem v-if="!isEdit" label="密码" path="password">
+            <NInput
+              v-model:value="formData.password"
+              type="password"
+              placeholder="请输入密码"
+            />
+          </NFormItem>
+        </div>
+        <div class="grid grid-cols-2 gap-x-4">
+          <NFormItem label="昵称" path="nickname">
+            <NInput
+              v-model:value="formData.nickname"
+              placeholder="请输入昵称"
+            />
+          </NFormItem>
+          <NFormItem label="邮箱" path="email">
+            <NInput
+              v-model:value="formData.email"
+              placeholder="请输入邮箱"
+            />
+          </NFormItem>
+        </div>
+        <div class="grid grid-cols-2 gap-x-4">
+          <NFormItem label="手机号" path="phone">
+            <NInput
+              v-model:value="formData.phone"
+              placeholder="请输入手机号"
+            />
+          </NFormItem>
+          <NFormItem label="状态" path="status">
+            <NSelect
+              v-model:value="formData.status"
+              :options="statusOptions"
+            />
+          </NFormItem>
+        </div>
+        <NFormItem label="角色" path="roleIds">
           <NSelect
-            v-model:value="formData.status"
-            :options="statusOptions"
+            v-model:value="formData.roleIds"
+            :options="roleOptions"
+            multiple
+            placeholder="请选择角色"
           />
         </NFormItem>
       </NForm>

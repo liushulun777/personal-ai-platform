@@ -32,10 +32,20 @@ public class EmbeddingModelConfig {
 
         log.info("创建 EmbeddingModel, baseUrl: {}, model: {}", properties.getBaseUrl(), properties.getModel());
 
-        OpenAiApi openAiApi = OpenAiApi.builder()
-                .baseUrl(properties.getBaseUrl())
-                .apiKey(properties.getApiKey())
-                .build();
+        // 检查是否是 Ollama 服务（不需要 API Key 认证）
+        boolean isOllama = properties.getBaseUrl() != null && properties.getBaseUrl().contains("11435");
+
+        OpenAiApi.Builder apiBuilder = OpenAiApi.builder()
+                .baseUrl(properties.getBaseUrl());
+
+        // Ollama 服务不需要 API Key，但 OpenAI SDK 要求必须设置
+        if (isOllama) {
+            apiBuilder.apiKey("ollama");  // Ollama 不验证 API Key
+        } else {
+            apiBuilder.apiKey(properties.getApiKey());
+        }
+
+        OpenAiApi openAiApi = apiBuilder.build();
 
         OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
                 .model(properties.getModel())

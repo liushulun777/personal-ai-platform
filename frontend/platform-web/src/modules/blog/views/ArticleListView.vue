@@ -18,9 +18,11 @@ import {
 } from '@/api/article'
 import type { ArticleVO, ArticleQueryParams } from '@/api/article'
 import ArticleCard from '@/modules/blog/components/ArticleCard.vue'
+import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const viewMode = ref<'card' | 'table'>('card')
 
@@ -69,24 +71,25 @@ const columns: DataTableColumns<ArticleVO> = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', quaternary: true, type: 'info', onClick: () => router.push(`/blog/articles/${row.id}/preview`) }, { default: () => '预览' }),
-          h(NButton, { size: 'small', quaternary: true, onClick: () => router.push(`/blog/articles/${row.id}`) }, { default: () => '编辑' }),
-          row.status === 0 ? h(NButton, {
-            size: 'small', quaternary: true, type: 'success',
-            onClick: () => handlePublish(row.id)
-          }, { default: () => '发布' }) : null,
-          row.status === 1 ? h(NButton, {
-            size: 'small', quaternary: true, type: 'warning',
-            onClick: () => handleArchive(row.id)
-          }, { default: () => '归档' }) : null,
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', quaternary: true, type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该文章？'
-          })
-        ].filter(Boolean)
-      })
+      const buttons = [
+        h(NButton, { size: 'small', quaternary: true, type: 'info', onClick: () => router.push(`/blog/articles/${row.id}/preview`) }, { default: () => '预览' })
+      ]
+      if (hasPermission('blog:article:edit')) {
+        buttons.push(h(NButton, { size: 'small', quaternary: true, onClick: () => router.push(`/blog/articles/${row.id}`) }, { default: () => '编辑' }))
+      }
+      if (row.status === 0 && hasPermission('blog:article:publish')) {
+        buttons.push(h(NButton, { size: 'small', quaternary: true, type: 'success', onClick: () => handlePublish(row.id) }, { default: () => '发布' }))
+      }
+      if (row.status === 1 && hasPermission('blog:article:publish')) {
+        buttons.push(h(NButton, { size: 'small', quaternary: true, type: 'warning', onClick: () => handleArchive(row.id) }, { default: () => '归档' }))
+      }
+      if (hasPermission('blog:article:delete')) {
+        buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+          trigger: () => h(NButton, { size: 'small', quaternary: true, type: 'error' }, { default: () => '删除' }),
+          default: () => '确认删除该文章？'
+        }))
+      }
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -164,7 +167,12 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">文章管理</h2>
-      <NButton type="primary" size="small" @click="router.push('/blog/articles/new')">
+      <NButton
+        v-if="hasPermission('blog:article:add')"
+        type="primary"
+        size="small"
+        @click="router.push('/blog/articles/new')"
+      >
         新建文章
       </NButton>
     </div>

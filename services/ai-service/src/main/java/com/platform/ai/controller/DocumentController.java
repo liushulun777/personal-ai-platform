@@ -2,6 +2,7 @@ package com.platform.ai.controller;
 
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.Result;
+import com.platform.common.security.annotation.RequirePermission;
 import com.platform.ai.domain.dto.DocumentQueryDTO;
 import com.platform.ai.domain.dto.DocumentUploadDTO;
 import com.platform.ai.domain.vo.DocumentDetailVO;
@@ -39,6 +40,7 @@ public class DocumentController {
         return Result.success(detailVO);
     }
 
+    @RequirePermission("knowledge:document:upload")
     @Operation(summary = "上传文档")
     @PostMapping
     public Result<Long> upload(@RequestPart("file") MultipartFile file,
@@ -47,6 +49,7 @@ public class DocumentController {
         return Result.success(documentId);
     }
 
+    @RequirePermission("knowledge:document:delete")
     @Operation(summary = "删除文档")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
@@ -54,6 +57,7 @@ public class DocumentController {
         return Result.success();
     }
 
+    @RequirePermission("knowledge:document:reprocess")
     @Operation(summary = "重新处理文档")
     @PostMapping("/{id}/reprocess")
     public Result<Void> reprocess(@PathVariable Long id) {

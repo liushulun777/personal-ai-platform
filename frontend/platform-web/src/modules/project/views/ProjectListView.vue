@@ -30,9 +30,11 @@ import {
   publishProject
 } from '@/api/project'
 import type { ProjectVO, ProjectCreateParams, ProjectUpdateParams } from '@/api/project'
+import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showModal = ref(false)
 const showAiModal = ref(false)
@@ -204,16 +206,18 @@ const columns: DataTableColumns<ProjectVO> = [
       )
 
       // 编辑按钮
-      actions.push(
-        h(NButton, {
-          size: 'small',
-          quaternary: true,
-          onClick: () => handleEdit(row)
-        }, { default: () => '编辑' })
-      )
+      if (hasPermission('project:project:edit')) {
+        actions.push(
+          h(NButton, {
+            size: 'small',
+            quaternary: true,
+            onClick: () => handleEdit(row)
+          }, { default: () => '编辑' })
+        )
+      }
 
       // 删除按钮（仅规划中状态可删除）
-      if (row.status === 0) {
+      if (row.status === 0 && hasPermission('project:project:delete')) {
         actions.push(
           h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
             trigger: () => h(NButton, { size: 'small', quaternary: true, type: 'error' }, { default: () => '删除' }),
@@ -307,7 +311,7 @@ async function handleAiSubmit() {
     showAiModal.value = false
     loadProjects()
   } catch (error) {
-    message.error('AI 拆分任务失败')
+    // interceptor handles error message
   } finally {
     aiLoading.value = false
   }
@@ -327,7 +331,7 @@ async function handlePublish(row: ProjectVO) {
     message.success(`项目发布成功！已创建 ${data.data.taskCount} 个任务，正在执行...`)
     loadProjects()
   } catch (error) {
-    message.error('项目发布失败')
+    // interceptor handles error message
   } finally {
     publishLoading.value = false
   }
@@ -341,7 +345,7 @@ async function handleExecuteProject(projectId: number) {
     message.success(`已触发 ${data.data} 个任务执行`)
     loadProjects()
   } catch (error) {
-    message.error('执行项目任务失败')
+    // interceptor handles error message
   } finally {
     executeLoading.value = null
   }
@@ -370,7 +374,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadProjects()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -394,7 +398,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">项目管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">
+      <NButton v-if="hasPermission('project:project:add')" type="primary" size="small" @click="handleAdd">
         新建项目
       </NButton>
     </div>

@@ -23,8 +23,10 @@ import {
   reprocessDocument
 } from '@/api/knowledge'
 import type { DocumentVO, DocumentUploadParams } from '@/api/knowledge'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showUploadModal = ref(false)
 const formRef = ref<FormInst | null>(null)
@@ -118,19 +120,13 @@ const columns: DataTableColumns<DocumentVO> = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, {
-            size: 'small',
-            disabled: row.status === 1,
-            onClick: () => handleReprocess(row.id)
-          }, { default: () => '重新处理' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该文档？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('knowledge:document:reprocess')) buttons.push(h(NButton, { size: 'small', disabled: row.status === 1, onClick: () => handleReprocess(row.id) }, { default: () => '重新处理' }))
+      if (hasPermission('knowledge:document:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该文档？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -205,7 +201,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadDocuments()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -215,7 +211,7 @@ async function handleReprocess(id: number) {
     message.success('重新处理已开始')
     loadDocuments()
   } catch (error) {
-    message.error('重新处理失败')
+    // interceptor handles error message
   }
 }
 
@@ -239,7 +235,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">文档管理</h2>
-      <NButton type="primary" size="small" @click="handleUpload">
+      <NButton v-if="hasPermission('knowledge:document:upload')" type="primary" size="small" @click="handleUpload">
         上传文档
       </NButton>
     </div>

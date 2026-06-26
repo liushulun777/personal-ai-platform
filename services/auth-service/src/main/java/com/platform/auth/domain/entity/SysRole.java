@@ -37,4 +37,9 @@ public class SysRole extends BaseEntity {
      * 状态: 1-启用, 0-禁用
      */
     private Integer status;
+
+    /**
+     * 数据范围: 1-全部数据, 2-仅本人数据
+     */
+    private Integer dataScope;
 }

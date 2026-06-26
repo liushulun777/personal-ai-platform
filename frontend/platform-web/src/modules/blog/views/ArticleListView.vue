@@ -101,7 +101,8 @@ async function loadArticles() {
       current: pagination.value.page,
       size: pagination.value.pageSize,
       title: queryParams.value.title || undefined,
-      status: queryParams.value.status ?? undefined
+      status: queryParams.value.status ?? undefined,
+      applyDataScope: true
     }
     const { data } = await getArticlePage(params)
     articles.value = data.data.records
@@ -124,7 +125,7 @@ async function handlePublish(id: number) {
     message.success('发布成功')
     loadArticles()
   } catch {
-    message.error('发布失败')
+    // interceptor handles error message
   }
 }
 
@@ -134,7 +135,7 @@ async function handleArchive(id: number) {
     message.success('归档成功')
     loadArticles()
   } catch {
-    message.error('归档失败')
+    // interceptor handles error message
   }
 }
 
@@ -144,7 +145,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadArticles()
   } catch {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 

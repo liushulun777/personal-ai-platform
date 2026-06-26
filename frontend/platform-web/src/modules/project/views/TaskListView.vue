@@ -36,9 +36,11 @@ import {
   getProjectPage
 } from '@/api/project'
 import type { TaskVO, TaskCreateParams, TaskUpdateParams, TaskExecutionVO, ProjectVO } from '@/api/project'
+import { usePermission } from '@/composables/usePermission'
 
 const route = useRoute()
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showModal = ref(false)
 const showExecutionModal = ref(false)
@@ -306,7 +308,7 @@ const columns: DataTableColumns<TaskVO> = [
       )
 
       // 编辑按钮（仅可编辑状态显示）
-      if (canEditTask(row)) {
+      if (canEditTask(row) && hasPermission('project:task:edit')) {
         actions.push(
           h(NButton, {
             size: 'small',
@@ -317,7 +319,7 @@ const columns: DataTableColumns<TaskVO> = [
       }
 
       // 删除按钮（仅 BACKLOG 状态可删除）
-      if (row.status === 0) {
+      if (row.status === 0 && hasPermission('project:task:delete')) {
         actions.push(
           h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
             trigger: () => h(NButton, { size: 'small', quaternary: true, type: 'error' }, { default: () => '删除' }),
@@ -415,7 +417,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadTasks()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -427,7 +429,7 @@ async function handleAgentExecute(taskId: number) {
     message.success('Agent 任务已触发，请查看执行日志')
     loadTasks()
   } catch (error) {
-    message.error('Agent 执行失败')
+    // interceptor handles error message
   } finally {
     executingTaskId.value = null
   }
@@ -440,7 +442,7 @@ async function handleStart(id: number) {
     message.success('任务已开始')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -451,7 +453,7 @@ async function handleComplete(id: number) {
     message.success('任务已完成')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -462,7 +464,7 @@ async function handleSubmitReview(id: number) {
     message.success('已提交审核')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -473,7 +475,7 @@ async function handleApprove(id: number) {
     message.success('审核通过')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -484,7 +486,7 @@ async function handleReject(id: number) {
     message.success('已拒绝')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -495,7 +497,7 @@ async function handleBlockWithReason(id: number) {
     message.success('任务已阻塞')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -506,7 +508,7 @@ async function handleUnblock(id: number) {
     message.success('已解除阻塞')
     loadTasks()
   } catch (error) {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -518,7 +520,7 @@ async function handleViewExecutions(taskId: number) {
     executions.value = data.data || []
     showExecutionModal.value = true
   } catch (error) {
-    message.error('获取执行日志失败')
+    // interceptor handles error message
   }
 }
 
@@ -543,7 +545,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">任务管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">
+      <NButton v-if="hasPermission('project:task:add')" type="primary" size="small" @click="handleAdd">
         新建任务
       </NButton>
     </div>

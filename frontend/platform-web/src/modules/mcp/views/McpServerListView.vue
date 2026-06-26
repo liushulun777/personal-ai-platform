@@ -2,7 +2,7 @@
   <div>
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-medium">MCP 服务管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">
+      <NButton v-if="hasPermission('mcp:server:add')" type="primary" size="small" @click="handleAdd">
         注册服务
       </NButton>
     </div>
@@ -84,8 +84,10 @@ import {
   disableMcpServer,
 } from '@/api/mcp'
 import type { McpServerVO, McpServerCreateParams } from '@/api/mcp'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const dialog = useDialog()
 const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
@@ -146,33 +148,14 @@ const columns: DataTableColumns<McpServerVO> = [
     key: 'actions',
     width: 250,
     render(row) {
-      return h(NSpace, { size: 4 }, {
-        default: () => [
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            onClick: () => handleEdit(row),
-          }, { default: () => '编辑' }),
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            type: row.status === 1 ? 'warning' : 'success',
-            onClick: () => handleToggleStatus(row),
-          }, { default: () => row.status === 1 ? '禁用' : '启用' }),
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            type: 'info',
-            onClick: () => handleViewTools(row),
-          }, { default: () => '工具' }),
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            type: 'error',
-            onClick: () => handleDelete(row),
-          }, { default: () => '删除' }),
-        ],
-      })
+      const buttons: any[] = []
+      if (hasPermission('mcp:server:edit')) {
+        buttons.push(h(NButton, { size: 'tiny', quaternary: true, onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+        buttons.push(h(NButton, { size: 'tiny', quaternary: true, type: row.status === 1 ? 'warning' : 'success', onClick: () => handleToggleStatus(row) }, { default: () => row.status === 1 ? '禁用' : '启用' }))
+      }
+      buttons.push(h(NButton, { size: 'tiny', quaternary: true, type: 'info', onClick: () => handleViewTools(row) }, { default: () => '工具' }))
+      if (hasPermission('mcp:server:delete')) buttons.push(h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' }))
+      return h(NSpace, { size: 4 }, { default: () => buttons })
     },
   },
 ]
@@ -234,7 +217,7 @@ async function handleSubmit() {
     await loadServers()
     return true
   } catch {
-    message.error(isEdit.value ? '更新失败' : '注册失败')
+    // interceptor handles error message
     return false
   } finally {
     submitting.value = false
@@ -252,7 +235,7 @@ async function handleToggleStatus(row: McpServerVO) {
     }
     await loadServers()
   } catch {
-    message.error('操作失败')
+    // interceptor handles error message
   }
 }
 
@@ -273,7 +256,7 @@ function handleDelete(row: McpServerVO) {
         message.success('删除成功')
         await loadServers()
       } catch {
-        message.error('删除失败')
+        // interceptor handles error message
       }
     },
   })

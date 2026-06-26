@@ -26,8 +26,10 @@ import {
 import type { UserVO, UserCreateParams, UserUpdateParams } from '@/api/user'
 import { getAllRoles } from '@/api/role'
 import type { RoleVO } from '@/api/role'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
@@ -113,20 +115,18 @@ const columns: DataTableColumns<UserVO> = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
-          h(NButton, {
-            size: 'small',
-            type: row.status === 1 ? 'warning' : 'success',
-            onClick: () => handleToggleStatus(row)
-          }, { default: () => row.status === 1 ? '禁用' : '启用' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该用户？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('system:user:edit')) {
+        buttons.push(h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+        buttons.push(h(NButton, { size: 'small', type: row.status === 1 ? 'warning' : 'success', onClick: () => handleToggleStatus(row) }, { default: () => row.status === 1 ? '禁用' : '启用' }))
+      }
+      if (hasPermission('system:user:delete')) {
+        buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+          trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+          default: () => '确认删除该用户？'
+        }))
+      }
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -272,8 +272,8 @@ async function handleToggleStatus(row: UserVO) {
     await updateUserStatus(row.id, { status: row.status === 1 ? 0 : 1 })
     message.success('状态修改成功')
     loadUsers()
-  } catch (error) {
-    message.error('状态修改失败')
+  } catch {
+    // interceptor handles error message
   }
 }
 
@@ -283,8 +283,8 @@ async function handleDelete(id: number) {
     await deleteUser(id)
     message.success('删除成功')
     loadUsers()
-  } catch (error) {
-    message.error('删除失败')
+  } catch {
+    // interceptor handles error message
   }
 }
 
@@ -310,7 +310,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">用户管理</h2>
-      <NButton type="primary" size="small" @click="handleCreate">
+      <NButton v-if="hasPermission('system:user:add')" type="primary" size="small" @click="handleCreate">
         新建用户
       </NButton>
     </div>

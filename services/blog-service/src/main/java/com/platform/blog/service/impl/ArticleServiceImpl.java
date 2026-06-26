@@ -26,6 +26,7 @@ import com.platform.common.core.constant.CommonConstant;
 import com.platform.common.core.exception.BusinessException;
 import com.platform.common.core.result.PageResult;
 import com.platform.common.core.result.ResultCode;
+import com.platform.common.security.util.DataScopeUtils;
 import com.platform.common.security.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -62,7 +63,18 @@ public class ArticleServiceImpl implements ArticleService {
         wrapper.like(StringUtils.hasText(queryDTO.getTitle()), Article::getTitle, queryDTO.getTitle());
         wrapper.eq(queryDTO.getCategoryId() != null, Article::getCategoryId, queryDTO.getCategoryId());
         wrapper.eq(queryDTO.getStatus() != null, Article::getStatus, queryDTO.getStatus());
-        wrapper.eq(queryDTO.getAuthorId() != null, Article::getAuthorId, queryDTO.getAuthorId());
+
+        // 作者过滤
+        if (queryDTO.getAuthorId() != null) {
+            wrapper.eq(Article::getAuthorId, queryDTO.getAuthorId());
+        }
+
+        // 数据权限过滤：仅管理页面（applyDataScope=true）时生效
+        if (Boolean.TRUE.equals(queryDTO.getApplyDataScope())) {
+            Long currentUserId = DataScopeUtils.getCurrentUserIdOrNull();
+            DataScopeUtils.applyDataScope(wrapper, Article::getAuthorId, currentUserId);
+        }
+
         wrapper.orderByDesc(Article::getIsTop);
         wrapper.orderByDesc(Article::getPublishTime);
 
@@ -272,6 +284,7 @@ public class ArticleServiceImpl implements ArticleService {
      */
     private ArticleEvent buildArticleEvent(Article article) {
         ArticleEvent event = new ArticleEvent();
+        event.setId(article.getId());
         event.setArticleId(article.getId());
         event.setTitle(article.getTitle());
         event.setSummary(article.getSummary());

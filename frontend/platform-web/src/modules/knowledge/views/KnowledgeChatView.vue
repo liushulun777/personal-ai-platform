@@ -44,7 +44,7 @@ async function handleQuery() {
     answer.value = data.data.answer
     sources.value = data.data.sources || []
   } catch (error) {
-    message.error('查询失败')
+    // interceptor handles error message
   } finally {
     loading.value = false
   }

@@ -23,8 +23,10 @@ import {
   getProjectPage
 } from '@/api/project'
 import type { BugVO, BugCreateParams, BugUpdateParams, ProjectVO } from '@/api/project'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
@@ -143,18 +145,13 @@ const columns: DataTableColumns<BugVO> = [
     key: 'actions',
     width: 160,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, {
-            size: 'small',
-            onClick: () => handleEdit(row)
-          }, { default: () => '编辑' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该Bug？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('project:bug:edit')) buttons.push(h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+      if (hasPermission('project:bug:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该Bug？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -243,7 +240,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadBugs()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -268,7 +265,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">Bug管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">
+      <NButton v-if="hasPermission('project:bug:add')" type="primary" size="small" @click="handleAdd">
         新建Bug
       </NButton>
     </div>

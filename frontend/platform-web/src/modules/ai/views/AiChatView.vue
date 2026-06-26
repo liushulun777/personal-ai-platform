@@ -115,7 +115,7 @@ async function handleDeleteConversation(id: number) {
         }
         await loadConversations()
       } catch {
-        message.error('删除失败')
+        // interceptor handles error message
       }
     },
   })
@@ -141,7 +141,7 @@ async function handleRename(id: number) {
     editingId.value = null
     await loadConversations()
   } catch {
-    message.error('重命名失败')
+    // interceptor handles error message
   }
 }
 

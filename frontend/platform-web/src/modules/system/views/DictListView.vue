@@ -33,8 +33,10 @@ import type {
   DictDataVO,
   DictDataCreateParams
 } from '@/api/dict'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 
 // ========== 字典类型 ==========
 const typeLoading = ref(false)
@@ -97,15 +99,13 @@ const typeColumns: DataTableColumns<DictTypeVO> = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEditType(row) }, { default: () => '编辑' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDeleteType(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该字典类型？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('system:dict:edit')) buttons.push(h(NButton, { size: 'small', onClick: () => handleEditType(row) }, { default: () => '编辑' }))
+      if (hasPermission('system:dict:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDeleteType(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该字典类型？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -184,7 +184,7 @@ async function handleDeleteType(id: number) {
     message.success('删除成功')
     loadDictTypes()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -254,15 +254,13 @@ const dataColumns: DataTableColumns<DictDataVO> = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEditData(row) }, { default: () => '编辑' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDeleteData(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该字典数据？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('system:dict:edit')) buttons.push(h(NButton, { size: 'small', onClick: () => handleEditData(row) }, { default: () => '编辑' }))
+      if (hasPermission('system:dict:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDeleteData(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该字典数据？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -353,7 +351,7 @@ async function handleDeleteData(id: number) {
     message.success('删除成功')
     loadDictData()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -389,7 +387,7 @@ onMounted(() => {
       <NTabPane name="type" tab="字典类型">
         <div class="flex justify-between items-center mb-4">
           <div />
-          <NButton type="primary" size="small" @click="handleCreateType">
+          <NButton v-if="hasPermission('system:dict:add')" type="primary" size="small" @click="handleCreateType">
             新建字典类型
           </NButton>
         </div>

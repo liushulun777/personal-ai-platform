@@ -27,8 +27,10 @@ import {
 import type { RoleVO, RoleCreateParams, RoleDetailVO } from '@/api/role'
 import { getMenuTree } from '@/api/menu'
 import type { MenuVO } from '@/api/menu'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const saving = ref(false)
 
@@ -48,6 +50,11 @@ const queryParams = ref({
 const statusOptions: SelectOption[] = [
   { label: '启用', value: 1 },
   { label: '禁用', value: 0 }
+]
+
+const dataScopeOptions: SelectOption[] = [
+  { label: '全部数据', value: 1 },
+  { label: '仅本人', value: 2 }
 ]
 
 async function loadRoles() {
@@ -79,7 +86,7 @@ async function selectRole(role: RoleVO) {
     selectedRole.value = data.data
     roleMenuIds.value = new Set(data.data.menuIds || [])
   } catch {
-    message.error('获取角色详情失败')
+    // interceptor handles error message
   }
 }
 
@@ -224,7 +231,7 @@ async function handleSavePermissions() {
     const { data } = await getRoleById(selectedRoleId.value)
     selectedRole.value = data.data
   } catch {
-    message.error('保存失败')
+    // interceptor handles error message
   } finally {
     saving.value = false
   }
@@ -240,6 +247,7 @@ const formData = ref<RoleCreateParams & { id?: number }>({
   description: '',
   sort: 0,
   status: 1,
+  dataScope: 1,
   menuIds: []
 })
 
@@ -250,7 +258,7 @@ const formRules = {
 
 function handleCreate() {
   isEdit.value = false
-  formData.value = { roleName: '', roleKey: '', description: '', sort: 0, status: 1, menuIds: [] }
+  formData.value = { roleName: '', roleKey: '', description: '', sort: 0, status: 1, dataScope: 1, menuIds: [] }
   showModal.value = true
 }
 
@@ -263,6 +271,7 @@ function handleEdit(row: RoleVO) {
     description: '',
     sort: 0,
     status: 1,
+    dataScope: row.dataScope || 1,
     menuIds: []
   }
   showModal.value = true
@@ -305,7 +314,7 @@ async function handleDelete(id: number) {
     }
     loadRoles()
   } catch {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -373,10 +382,10 @@ onMounted(() => {
               </div>
             </div>
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <NButton text size="tiny" @click.stop="handleEdit(role)">
+              <NButton v-if="hasPermission('system:role:edit')" text size="tiny" @click.stop="handleEdit(role)">
                 <span style="color: var(--text-muted); font-size: 11px">编辑</span>
               </NButton>
-              <NPopconfirm @positive-click.stop="handleDelete(role.id)">
+              <NPopconfirm v-if="hasPermission('system:role:delete')" @positive-click.stop="handleDelete(role.id)">
                 <template #trigger>
                   <NButton text size="tiny" @click.stop>
                     <span style="color: #ef4444; font-size: 11px">删除</span>
@@ -492,7 +501,7 @@ onMounted(() => {
       v-model:show="showModal"
       :title="isEdit ? '编辑角色' : '新建角色'"
       preset="card"
-      style="width: 480px"
+      style="width: 650px"
     >
       <NForm
         ref="formRef"
@@ -510,12 +519,15 @@ onMounted(() => {
         <NFormItem label="描述" path="description">
           <NInput v-model:value="formData.description" type="textarea" placeholder="描述" :rows="2" />
         </NFormItem>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-3">
           <NFormItem label="排序" path="sort">
             <NInputNumber v-model:value="formData.sort" :min="0" class="w-full" />
           </NFormItem>
           <NFormItem label="状态" path="status">
             <NSelect v-model:value="formData.status" :options="statusOptions" />
+          </NFormItem>
+          <NFormItem label="数据范围" path="dataScope">
+            <NSelect v-model:value="formData.dataScope" :options="dataScopeOptions" />
           </NFormItem>
         </div>
       </NForm>

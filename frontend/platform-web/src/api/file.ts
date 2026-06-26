@@ -15,12 +15,13 @@ export interface FileVO {
 
 /**
  * 上传文件
+ * 路径: /system/files/upload → gateway StripPrefix → system-service /files/upload
  */
 export function uploadFile(file: File, module: string = 'common') {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('module', module)
-  return request.post<ApiResult<FileVO>>('/file/upload', formData, {
+  return request.post<ApiResult<FileVO>>('/system/files/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -36,7 +37,7 @@ export function uploadFiles(files: File[], module: string = 'common') {
     formData.append('files', file)
   })
   formData.append('module', module)
-  return request.post<ApiResult<FileVO[]>>('/file/upload/batch', formData, {
+  return request.post<ApiResult<FileVO[]>>('/system/files/upload/batch', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -47,12 +48,12 @@ export function uploadFiles(files: File[], module: string = 'common') {
  * 获取文件信息
  */
 export function getFileById(id: number) {
-  return request.get<ApiResult<FileVO>>(`/file/${id}`)
+  return request.get<ApiResult<FileVO>>(`/system/files/${id}`)
 }
 
 /**
  * 删除文件
  */
 export function deleteFile(id: number) {
-  return request.delete<ApiResult<void>>(`/file/${id}`)
+  return request.delete<ApiResult<void>>(`/system/files/${id}`)
 }

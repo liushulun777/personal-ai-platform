@@ -22,4 +22,9 @@ public class RoleVO {
      * 角色标识
      */
     private String roleKey;
+
+    /**
+     * 数据范围: 1-全部数据, 2-仅本人数据
+     */
+    private Integer dataScope;
 }

@@ -17,7 +17,12 @@ public class ArticleEvent {
     private String eventType;
 
     /**
-     * 文章ID
+     * 文章ID（与 ArticleDocument.id 对应）
+     */
+    private Long id;
+
+    /**
+     * 文章ID（兼容旧代码）
      */
     private Long articleId;
 

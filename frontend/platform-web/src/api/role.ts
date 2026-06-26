@@ -6,6 +6,7 @@ export interface RoleVO {
   id: number
   roleName: string
   roleKey: string
+  dataScope?: number
 }
 
 /** 角色详情 */
@@ -30,6 +31,7 @@ export interface RoleCreateParams {
   description?: string
   sort?: number
   status?: number
+  dataScope?: number
   menuIds?: number[]
 }
 
@@ -40,6 +42,7 @@ export interface RoleUpdateParams {
   description?: string
   sort?: number
   status?: number
+  dataScope?: number
   menuIds?: number[]
 }
 

@@ -3,6 +3,9 @@ package com.platform.search.config;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,22 +25,23 @@ public class ElasticsearchConfig {
 
     @Bean
     public ElasticsearchClient elasticsearchClient() {
-        // 解析 URI
         String[] parts = elasticsearchUris.replace("http://", "").replace("https://", "").split(":");
         String host = parts[0];
         int port = Integer.parseInt(parts[1]);
 
-        // 创建 RestClient
         RestClient restClient = RestClient.builder(
                 new HttpHost(host, port, "http")
         ).build();
 
-        // 创建传输层
+        // 配置 ObjectMapper：忽略未知字段（如 _class）、支持 LocalDateTime
+        ObjectMapper objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         RestClientTransport transport = new RestClientTransport(
-                restClient, new JacksonJsonpMapper()
+                restClient, new JacksonJsonpMapper(objectMapper)
         );
 
-        // 创建客户端
         return new ElasticsearchClient(transport);
     }
 }

@@ -38,6 +38,7 @@ export interface ArticleQueryParams extends PageQuery {
   tagId?: number
   status?: number
   authorId?: number
+  applyDataScope?: boolean
 }
 
 /** 创建文章参数 */

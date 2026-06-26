@@ -1,5 +1,6 @@
 package com.platform.search;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -15,6 +16,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 })
 @EnableDiscoveryClient
 @EnableKafka
+@MapperScan({"com.platform.search.mapper", "com.platform.common.core.mapper"})
 @ComponentScan(basePackages = {"com.platform.search", "com.platform.common"})
 public class SearchApplication {
 

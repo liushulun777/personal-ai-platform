@@ -35,4 +35,9 @@ public class ArticleQueryDTO extends PageQuery {
      * 作者ID
      */
     private Long authorId;
+
+    /**
+     * 是否应用数据权限过滤（管理页面传 true，公开页面不传或传 false）
+     */
+    private Boolean applyDataScope;
 }

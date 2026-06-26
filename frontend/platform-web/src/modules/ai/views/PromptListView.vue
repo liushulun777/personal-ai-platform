@@ -2,7 +2,7 @@
   <div>
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-medium">Prompt 模板管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">
+      <NButton v-if="hasPermission('ai:prompt:add')" type="primary" size="small" @click="handleAdd">
         新建模板
       </NButton>
     </div>
@@ -76,8 +76,10 @@ import {
 import type { DataTableColumns, FormInst, PaginationProps } from 'naive-ui'
 import { getPrompts, createPrompt, updatePrompt, deletePrompt } from '@/api/ai'
 import type { PromptVO, PromptCreateDTO } from '@/types/ai'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const dialog = useDialog()
 const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
@@ -132,21 +134,10 @@ const columns: DataTableColumns<PromptVO> = [
     key: 'actions',
     width: 150,
     render(row) {
-      return h(NSpace, { size: 4 }, {
-        default: () => [
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            onClick: () => handleEdit(row),
-          }, { default: () => '编辑' }),
-          h(NButton, {
-            size: 'tiny',
-            type: 'error',
-            quaternary: true,
-            onClick: () => handleDelete(row),
-          }, { default: () => '删除' }),
-        ],
-      })
+      const buttons: any[] = []
+      if (hasPermission('ai:prompt:edit')) buttons.push(h(NButton, { size: 'tiny', quaternary: true, onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+      if (hasPermission('ai:prompt:delete')) buttons.push(h(NButton, { size: 'tiny', type: 'error', quaternary: true, onClick: () => handleDelete(row) }, { default: () => '删除' }))
+      return h(NSpace, { size: 4 }, { default: () => buttons })
     },
   },
 ]
@@ -206,7 +197,7 @@ async function handleSubmit() {
     await loadPrompts()
     return true
   } catch {
-    message.error(isEdit.value ? '更新失败' : '创建失败')
+    // interceptor handles error message
     return false
   } finally {
     creating.value = false
@@ -225,7 +216,7 @@ function handleDelete(row: PromptVO) {
         message.success('删除成功')
         await loadPrompts()
       } catch {
-        message.error('删除失败')
+        // interceptor handles error message
       }
     },
   })

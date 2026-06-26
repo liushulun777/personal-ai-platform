@@ -144,7 +144,7 @@ async function handleCancelTask(taskId: number) {
     message.success('任务已取消')
     await loadExecutions()
   } catch {
-    message.error('取消失败')
+    // interceptor handles error message
   } finally {
     cancellingExecutionId.value = null
   }

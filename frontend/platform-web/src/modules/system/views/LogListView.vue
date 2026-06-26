@@ -16,8 +16,10 @@ import {
 import type { DataTableColumns, SelectOption } from 'naive-ui'
 import { getLogPage, getLogById, deleteLog } from '@/api/log'
 import type { LogVO } from '@/api/log'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showDetail = ref(false)
 const currentLog = ref<LogVO | null>(null)
@@ -77,15 +79,12 @@ const columns: DataTableColumns<LogVO> = [
     key: 'actions',
     width: 150,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleDetail(row) }, { default: () => '详情' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该日志？'
-          })
-        ]
-      })
+      const buttons = [h(NButton, { size: 'small', onClick: () => handleDetail(row) }, { default: () => '详情' })]
+      if (hasPermission('system:log:list')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该日志？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -126,7 +125,7 @@ async function handleDetail(row: LogVO) {
     currentLog.value = data.data
     showDetail.value = true
   } catch (error) {
-    message.error('获取日志详情失败')
+    // interceptor handles error message
   }
 }
 
@@ -136,7 +135,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadLogs()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 

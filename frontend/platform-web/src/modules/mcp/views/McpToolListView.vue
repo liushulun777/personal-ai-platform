@@ -6,7 +6,7 @@
         <NButton size="small" @click="handleSync" :loading="syncing">
           同步工具
         </NButton>
-        <NButton type="primary" size="small" @click="handleAdd">
+        <NButton v-if="hasPermission('mcp:tool:add')" type="primary" size="small" @click="handleAdd">
           添加工具
         </NButton>
       </NSpace>
@@ -133,8 +133,10 @@ import {
   getMcpServerPage,
 } from '@/api/mcp'
 import type { McpToolVO, McpToolCreateParams } from '@/api/mcp'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const dialog = useDialog()
 const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
@@ -186,22 +188,10 @@ const columns: DataTableColumns<McpToolVO> = [
     key: 'actions',
     width: 180,
     render(row) {
-      return h(NSpace, { size: 4 }, {
-        default: () => [
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            type: 'info',
-            onClick: () => handleInvokeTest(row),
-          }, { default: () => '调用' }),
-          h(NButton, {
-            size: 'tiny',
-            quaternary: true,
-            type: 'error',
-            onClick: () => handleDelete(row),
-          }, { default: () => '删除' }),
-        ],
-      })
+      const buttons: any[] = []
+      if (hasPermission('mcp:tool:invoke')) buttons.push(h(NButton, { size: 'tiny', quaternary: true, type: 'info', onClick: () => handleInvokeTest(row) }, { default: () => '调用' }))
+      if (hasPermission('mcp:tool:delete')) buttons.push(h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' }))
+      return h(NSpace, { size: 4 }, { default: () => buttons })
     },
   },
 ]
@@ -257,7 +247,6 @@ async function handleSubmit() {
     await loadTools()
     return true
   } catch {
-    message.error('添加失败')
     return false
   } finally {
     submitting.value = false
@@ -290,7 +279,6 @@ async function handleInvoke() {
     invokeResult.value = res.data.data
     return true
   } catch {
-    message.error('调用失败')
     return false
   } finally {
     invoking.value = false
@@ -308,7 +296,7 @@ async function handleSync() {
     message.success('同步完成')
     await loadTools()
   } catch {
-    message.error('同步失败')
+    // interceptor handles error message
   } finally {
     syncing.value = false
   }
@@ -326,7 +314,7 @@ function handleDelete(row: McpToolVO) {
         message.success('删除成功')
         await loadTools()
       } catch {
-        message.error('删除失败')
+        // interceptor handles error message
       }
     },
   })

@@ -134,9 +134,9 @@ INSERT INTO sys_menu (id, parent_id, menu_name, path, component, icon, menu_type
 -- 角色数据
 -- ============================================================
 
--- 普通角色：作者（可以发布管理自己的文章）
-INSERT INTO sys_role (id, role_name, role_key, description, sort, status) VALUES
-(2, '作者', 'AUTHOR', '普通作者角色，可发布和管理自己的文章，使用AI助手和知识库', 1, 1);
+-- 普通角色：作者（可以发布管理自己的文章，数据范围：仅本人）
+INSERT INTO sys_role (id, role_name, role_key, description, sort, status, data_scope) VALUES
+(2, '作者', 'AUTHOR', '普通作者角色，可发布和管理自己的文章，使用AI助手和知识库', 1, 1, 2);
 
 -- ============================================================
 -- 角色-菜单关联

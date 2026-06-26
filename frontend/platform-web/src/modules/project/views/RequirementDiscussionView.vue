@@ -97,7 +97,7 @@ async function handleStartDiscussion() {
     message.success('需求讨论已开始')
     scrollToBottom()
   } catch {
-    message.error('开始讨论失败')
+    // interceptor handles error message
   } finally {
     loading.value = false
   }
@@ -134,7 +134,7 @@ async function handleSendMessage() {
     })
     scrollToBottom()
   } catch {
-    message.error('发送消息失败')
+    // interceptor handles error message
   } finally {
     sending.value = false
   }
@@ -161,7 +161,7 @@ async function handleAnalyze() {
       message.warning('解析分析结果失败')
     }
   } catch {
-    message.error('分析失败')
+    // interceptor handles error message
   } finally {
     loading.value = false
   }
@@ -180,7 +180,7 @@ async function handleGenerateDocument() {
     generatedDocument.value = data.data.document
     message.success('需求文档已生成')
   } catch {
-    message.error('生成文档失败')
+    // interceptor handles error message
   } finally {
     generating.value = false
   }

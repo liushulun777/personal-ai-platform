@@ -22,6 +22,9 @@ import {
   updateMenu,
   deleteMenu
 } from '@/api/menu'
+import { usePermission } from '@/composables/usePermission'
+
+const { hasPermission } = usePermission()
 import type { MenuVO, MenuCreateParams, MenuUpdateParams } from '@/api/menu'
 
 const message = useMessage()
@@ -107,19 +110,16 @@ const columns: DataTableColumns<MenuVO> = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
-          h(NButton, {
-            size: 'small',
-            onClick: () => handleAddChild(row.id)
-          }, { default: () => '添加子菜单' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该菜单？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('system:menu:edit')) {
+        buttons.push(h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+        buttons.push(h(NButton, { size: 'small', onClick: () => handleAddChild(row.id) }, { default: () => '添加子菜单' }))
+      }
+      if (hasPermission('system:menu:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该菜单？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -243,8 +243,8 @@ async function handleDelete(id: number) {
     await deleteMenu(id)
     message.success('删除成功')
     loadMenuTree()
-  } catch (error) {
-    message.error('删除失败')
+  } catch {
+    // interceptor handles error message
   }
 }
 
@@ -257,7 +257,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">菜单管理</h2>
-      <NButton type="primary" size="small" @click="handleCreate">
+      <NButton v-if="hasPermission('system:menu:add')" type="primary" size="small" @click="handleCreate">
         新建菜单
       </NButton>
     </div>

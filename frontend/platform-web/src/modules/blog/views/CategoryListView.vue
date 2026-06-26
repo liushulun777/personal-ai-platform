@@ -21,8 +21,10 @@ import {
   deleteCategory
 } from '@/api/category'
 import type { CategoryVO, CategoryCreateParams, CategoryUpdateParams } from '@/api/category'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
@@ -63,15 +65,13 @@ const columns: DataTableColumns<CategoryVO> = [
     key: 'actions',
     width: 160,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该分类？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('blog:category:edit')) buttons.push(h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+      if (hasPermission('blog:category:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该分类？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -139,7 +139,7 @@ async function handleDelete(id: number) {
     message.success('删除成功')
     loadCategories()
   } catch (error) {
-    message.error('删除失败')
+    // interceptor handles error message
   }
 }
 
@@ -152,7 +152,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">分类管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">新增分类</NButton>
+      <NButton v-if="hasPermission('blog:category:add')" type="primary" size="small" @click="handleAdd">新增分类</NButton>
     </div>
 
     <div class="border border-[var(--border-color)] rounded-lg overflow-hidden">

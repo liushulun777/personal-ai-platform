@@ -92,7 +92,7 @@ async function handleToggleLike() {
     } else {
       await toggleLike(articleId); liked.value = true; if (article.value) article.value.likeCount++
     }
-  } catch { message.error('操作失败') }
+  } catch { /* interceptor handles error message */ }
 }
 
 async function handleToggleFavorite() {
@@ -102,7 +102,7 @@ async function handleToggleFavorite() {
     } else {
       await toggleFavorite(articleId); favorited.value = true; if (article.value) article.value.favoriteCount++
     }
-  } catch { message.error('操作失败') }
+  } catch { /* interceptor handles error message */ }
 }
 
 async function handleSubmitComment() {
@@ -112,14 +112,14 @@ async function handleSubmitComment() {
     await createComment({ articleId: articleId, content: commentContent.value.trim() })
     commentContent.value = ''; message.success('评论成功'); loadComments()
     if (article.value) article.value.commentCount++
-  } catch { message.error('评论失败') } finally { submittingComment.value = false }
+  } catch { /* interceptor handles error message */ } finally { submittingComment.value = false }
 }
 
 async function handleDeleteComment(id: number) {
   try {
     await deleteComment(id); message.success('删除成功'); loadComments()
     if (article.value) article.value.commentCount--
-  } catch { message.error('删除失败') }
+  } catch { /* interceptor handles error message */ }
 }
 
 function formatDate(date: string | null | undefined) { return date ? date.slice(0, 10) : '' }

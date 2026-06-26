@@ -43,6 +43,7 @@ CREATE TABLE sys_role (
     description     VARCHAR(200),
     sort            INT             NOT NULL DEFAULT 0,
     status          INT             NOT NULL DEFAULT 1,
+    data_scope      INT             NOT NULL DEFAULT 1,
     create_by       BIGINT,
     create_time     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_by       BIGINT,

@@ -20,8 +20,10 @@ import {
   deleteTag
 } from '@/api/tag'
 import type { TagVO, TagCreateParams, TagUpdateParams } from '@/api/tag'
+import { usePermission } from '@/composables/usePermission'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
@@ -77,15 +79,13 @@ const columns: DataTableColumns<TagVO> = [
     key: 'actions',
     width: 160,
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
-          h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
-            trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-            default: () => '确认删除该标签？'
-          })
-        ]
-      })
+      const buttons: any[] = []
+      if (hasPermission('blog:tag:edit')) buttons.push(h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }))
+      if (hasPermission('blog:tag:delete')) buttons.push(h(NPopconfirm, { onPositiveClick: () => handleDelete(row.id) }, {
+        trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+        default: () => '确认删除该标签？'
+      }))
+      return h(NSpace, { size: 'small' }, { default: () => buttons })
     }
   }
 ]
@@ -154,8 +154,8 @@ async function handleDelete(id: number) {
     await deleteTag(id)
     message.success('删除成功')
     loadTags()
-  } catch (error) {
-    message.error('删除失败')
+  } catch {
+    // interceptor handles error message
   }
 }
 
@@ -168,7 +168,7 @@ onMounted(() => {
   <div>
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-lg font-semibold" style="color: var(--text-primary)">标签管理</h2>
-      <NButton type="primary" size="small" @click="handleAdd">新增标签</NButton>
+      <NButton v-if="hasPermission('blog:tag:add')" type="primary" size="small" @click="handleAdd">新增标签</NButton>
     </div>
 
     <div class="border border-[var(--border-color)] rounded-lg overflow-hidden">

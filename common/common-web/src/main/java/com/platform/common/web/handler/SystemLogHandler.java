@@ -1,8 +1,8 @@
-package com.platform.system.handler.impl;
+package com.platform.common.web.handler;
 
+import com.platform.common.core.entity.SysLog;
 import com.platform.common.core.handler.OperationLogHandler;
-import com.platform.system.domain.entity.SysLog;
-import com.platform.system.mapper.SysLogMapper;
+import com.platform.common.core.mapper.SysLogMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 /**
- * 系统服务日志处理器实现
+ * 系统操作日志处理器
+ * 所有服务共享，自动保存 @OperationLog 标注的方法调用日志
  */
 @Slf4j
 @Component

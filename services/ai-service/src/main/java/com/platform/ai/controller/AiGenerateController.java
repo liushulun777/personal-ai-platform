@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * AI生成控制器
@@ -75,7 +76,7 @@ public class AiGenerateController {
     @PostMapping("/ask")
     public Result<ArticleAskVO> askArticle(@Valid @RequestBody ArticleAskDTO articleAskDTO) {
         Result<ArticleContentDTO> articleResult = blogServiceClient.getArticleById(articleAskDTO.getArticleId());
-        if (articleResult.getCode() != ResultCode.SUCCESS.getCode() || articleResult.getData() == null) {
+        if (!Objects.equals(articleResult.getCode(), ResultCode.SUCCESS.getCode()) || articleResult.getData() == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "文章不存在");
         }
         String articleContent = articleResult.getData().getContent();

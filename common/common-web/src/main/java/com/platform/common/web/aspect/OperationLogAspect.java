@@ -1,5 +1,6 @@
 package com.platform.common.web.aspect;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.common.core.annotation.OperationLog;
 import com.platform.common.core.handler.OperationLogHandler;
@@ -46,6 +47,14 @@ public class OperationLogAspect {
             logInfo.setRequestMethod(request.getMethod());
             logInfo.setIp(getClientIp(request));
             logInfo.setUserAgent(request.getHeader("User-Agent"));
+        }
+
+        // 获取当前操作人
+        try {
+            if (StpUtil.isLogin()) {
+                logInfo.setUserId(StpUtil.getLoginIdAsLong());
+            }
+        } catch (Exception ignored) {
         }
 
         // 获取请求参数

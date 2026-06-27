@@ -2,6 +2,7 @@ package com.platform.search.service.impl;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -20,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -316,35 +316,35 @@ public class SearchServiceImpl implements SearchService {
     /**
      * 构建排序
      */
-    private List<co.elastic.clients.elasticsearch._types.SortOptions> buildSort(ArticleSearchDTO searchDTO) {
-        List<co.elastic.clients.elasticsearch._types.SortOptions> sorts = new ArrayList<>();
+    private List<SortOptions> buildSort(ArticleSearchDTO searchDTO) {
+        List<SortOptions> sorts = new ArrayList<>();
         SortOrder order = "asc".equals(searchDTO.getSortOrder()) ? SortOrder.Asc : SortOrder.Desc;
 
         switch (searchDTO.getSortBy()) {
             case "time":
-                sorts.add(co.elastic.clients.elasticsearch._types.SortOptions.of(s -> s
+                sorts.add(SortOptions.of(s -> s
                         .field(f -> f.field("publishTime").order(order))
                 ));
                 break;
             case "viewCount":
-                sorts.add(co.elastic.clients.elasticsearch._types.SortOptions.of(s -> s
+                sorts.add(SortOptions.of(s -> s
                         .field(f -> f.field("viewCount").order(order))
                 ));
                 break;
             case "likeCount":
-                sorts.add(co.elastic.clients.elasticsearch._types.SortOptions.of(s -> s
+                sorts.add(SortOptions.of(s -> s
                         .field(f -> f.field("likeCount").order(order))
                 ));
                 break;
             default: // relevance
-                sorts.add(co.elastic.clients.elasticsearch._types.SortOptions.of(s -> s
+                sorts.add(SortOptions.of(s -> s
                         .score(sc -> sc.order(order))
                 ));
                 break;
         }
 
         // 置顶优先
-        sorts.add(co.elastic.clients.elasticsearch._types.SortOptions.of(s -> s
+        sorts.add(SortOptions.of(s -> s
                 .field(f -> f.field("isTop").order(SortOrder.Desc))
         ));
 

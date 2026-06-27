@@ -44,9 +44,9 @@ const activeTocId = ref('')
 let observer: IntersectionObserver | null = null
 let headingCounter = 0
 
-// Configure marked to add id to headings
-const renderer = new marked.Renderer()
-renderer.heading = function ({ text, depth }: { text: string; depth: number }) {
+// Create a dedicated renderer for article content (not global)
+const articleRenderer = new marked.Renderer()
+articleRenderer.heading = function ({ text, depth }: { text: string; depth: number }) {
   const rawText = typeof text === 'string' ? text : String(text)
   const plainText = rawText.replace(/<[^>]*>/g, '')
   const id = `h-${++headingCounter}-${plainText.replace(/[^\w一-鿿]+/g, '-').replace(/^-|-$/g, '').toLowerCase()}`
@@ -54,13 +54,11 @@ renderer.heading = function ({ text, depth }: { text: string; depth: number }) {
   return `<h${depth} id="${id}">${rawText}</h${depth}>`
 }
 
-marked.setOptions({ renderer })
-
 const renderedContent = computed(() => {
   tocItems.value = []
   headingCounter = 0
   if (!article.value?.content) return ''
-  return marked.parse(article.value.content) as string
+  return marked.parse(article.value.content, { renderer: articleRenderer }) as string
 })
 
 function requireAuth(action: () => void) {
@@ -420,8 +418,8 @@ onUnmounted(() => {
         </NSpin>
       </div>
 
-      <!-- Right: Action sidebar -->
-      <aside v-if="article" class="hidden lg:block w-14 flex-shrink-0 sticky top-32">
+      <!-- Right: Action sidebar — uses position:sticky with self-stretch -->
+      <aside v-if="article" class="hidden lg:block w-14 flex-shrink-0" style="position: sticky; top: 8rem; align-self: flex-start">
         <div class="flex flex-col items-center gap-3 p-3 rounded-xl" style="background: var(--bg-card); border: 1px solid var(--border-color)">
           <button
             class="flex flex-col items-center gap-1 w-full py-2 rounded-lg transition-all duration-200 hover:bg-[var(--hover-bg)]"

@@ -326,45 +326,6 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     /**
-     * 填充文章VO的分类名称和标签
-     */
-    private void fillArticleVO(ArticleVO articleVO) {
-        // 填充分类名称
-        if (articleVO.getCategoryId() != null) {
-            Category category = categoryMapper.selectById(articleVO.getCategoryId());
-            if (category != null) {
-                articleVO.setCategoryName(category.getName());
-            }
-        }
-
-        // 填充标签
-        List<ArticleTag> articleTags = articleTagMapper.selectList(
-                new LambdaQueryWrapper<ArticleTag>()
-                        .eq(ArticleTag::getArticleId, articleVO.getId())
-        );
-
-        if (!articleTags.isEmpty()) {
-            List<Long> tagIds = articleTags.stream()
-                    .map(ArticleTag::getTagId)
-                    .collect(Collectors.toList());
-            List<Tag> tags = tagMapper.selectByIds(tagIds);
-            List<TagVO> tagVOs = tags.stream()
-                    .map(tag -> {
-                        TagVO tagVO = new TagVO();
-                        tagVO.setId(tag.getId());
-                        tagVO.setName(tag.getName());
-                        tagVO.setSlug(tag.getSlug());
-                        tagVO.setColor(tag.getColor());
-                        return tagVO;
-                    })
-                    .collect(Collectors.toList());
-            articleVO.setTags(tagVOs);
-        } else {
-            articleVO.setTags(Collections.emptyList());
-        }
-    }
-
-    /**
      * 批量填充文章VO的分类名称和标签（避免 N+1 查询）
      */
     private void fillArticleVOBatch(List<ArticleVO> records) {
@@ -418,7 +379,7 @@ public class ArticleServiceImpl implements ArticleService {
                 .map(ArticleVO::getAuthorId)
                 .filter(id -> id != null)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
         Map<Long, String> authorNameMap = Collections.emptyMap();
         if (!authorIds.isEmpty()) {
             authorNameMap = authorIds.stream()

@@ -58,8 +58,11 @@ const question = ref('')
 const loading = ref(false)
 const qaHistory = ref<{ question: string; answer: string }[]>([])
 
+// 使用独立的 renderer，避免污染全局 marked 配置
+const qaRenderer = new marked.Renderer()
+
 function renderMarkdown(content: string): string {
-  return marked.parse(content, { breaks: true }) as string
+  return marked.parse(content, { breaks: true, renderer: qaRenderer }) as string
 }
 
 async function handleAsk() {
@@ -147,10 +150,17 @@ async function handleAsk() {
   color: var(--accent);
   font-weight: 600;
   margin-right: 4px;
+  vertical-align: top;
 }
 
 .answer-content {
   display: inline;
+}
+
+.answer-content :deep(strong),
+.answer-content :deep(b) {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .answer-content :deep(p) {
@@ -158,10 +168,21 @@ async function handleAsk() {
 }
 
 .answer-content :deep(code) {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--accent-soft);
   padding: 2px 4px;
   border-radius: 3px;
   font-size: 12px;
+  color: var(--accent);
+}
+
+.answer-content :deep(ul),
+.answer-content :deep(ol) {
+  padding-left: 1.5em;
+  margin: 4px 0;
+}
+
+.answer-content :deep(li) {
+  margin: 2px 0;
 }
 
 .qa-input {

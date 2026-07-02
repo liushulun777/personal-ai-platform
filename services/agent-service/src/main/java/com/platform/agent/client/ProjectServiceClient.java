@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Project Service Feign Client
  */
-@FeignClient(name = "project-service")
+@FeignClient(name = "project-service", fallbackFactory = ProjectServiceClientFallbackFactory.class)
 public interface ProjectServiceClient {
 
     /**

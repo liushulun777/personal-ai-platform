@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Knowledge Service Feign Client
  */
-@FeignClient(name = "knowledge-service")
+@FeignClient(name = "knowledge-service", fallbackFactory = KnowledgeServiceClientFallbackFactory.class)
 public interface KnowledgeServiceClient {
 
     /**

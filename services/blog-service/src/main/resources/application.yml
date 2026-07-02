@@ -25,6 +25,14 @@ spring:
       discovery:
         server-addr: ${INFRA_HOST:172.18.0.34}:8848
         fail-fast: false
+    sentinel:
+      transport:
+        dashboard: localhost:8080
+        port: 8719
+      eager: false
+  feign:
+    sentinel:
+      enabled: true
   kafka:
     bootstrap-servers: ${INFRA_HOST:172.18.0.34}:29092
     producer:

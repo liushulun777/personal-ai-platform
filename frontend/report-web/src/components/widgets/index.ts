@@ -1,0 +1,5 @@
+export { default as TextWidget } from './TextWidget.vue'
+export { default as TableWidget } from './TableWidget.vue'
+export { default as ChartWidget } from './ChartWidget.vue'
+export { default as ImageWidget } from './ImageWidget.vue'
+export { default as WidgetRenderer } from './WidgetRenderer.vue'

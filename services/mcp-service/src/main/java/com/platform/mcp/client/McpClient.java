@@ -1,5 +1,7 @@
 package com.platform.mcp.client;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.mcp.domain.entity.McpServer;
@@ -33,6 +35,11 @@ public class McpClient {
     /**
      * 调用 MCP 工具
      */
+    @SentinelResource(
+        value = "invokeTool",
+        blockHandler = "invokeToolBlockHandler",
+        fallback = "invokeToolFallback"
+    )
     public Map<String, Object> invokeTool(McpServer server, String toolName, Map<String, Object> arguments) {
         String transportType = server.getTransportType();
 
@@ -42,6 +49,30 @@ public class McpClient {
             case "streamable_http" -> invokeViaHttp(server, toolName, arguments);
             default -> throw new IllegalArgumentException("不支持的传输类型: " + transportType);
         };
+    }
+
+    /**
+     * 限流/降级处理方法（BlockException）
+     */
+    public Map<String, Object> invokeToolBlockHandler(McpServer server, String toolName,
+                                                      Map<String, Object> arguments, BlockException ex) {
+        log.warn("MCP工具调用被限流或降级，工具: {}, 原因: {}", toolName, ex.getClass().getSimpleName());
+        Map<String, Object> fallbackResult = new HashMap<>();
+        fallbackResult.put("error", "MCP服务暂时不可用");
+        fallbackResult.put("message", "请稍后重试");
+        return fallbackResult;
+    }
+
+    /**
+     * 业务异常处理方法（Throwable）
+     */
+    public Map<String, Object> invokeToolFallback(McpServer server, String toolName,
+                                                  Map<String, Object> arguments, Throwable t) {
+        log.error("MCP工具调用失败，工具: {}, 原因: {}", toolName, t.getMessage());
+        Map<String, Object> fallbackResult = new HashMap<>();
+        fallbackResult.put("error", "MCP工具调用失败");
+        fallbackResult.put("message", t.getMessage());
+        return fallbackResult;
     }
 
     /**

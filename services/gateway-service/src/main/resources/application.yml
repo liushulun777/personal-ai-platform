@@ -69,6 +69,13 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: report-service
+          uri: lb://report-service
+          predicates:
+            - Path=/report/**
+          filters:
+            - StripPrefix=1
+
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
 

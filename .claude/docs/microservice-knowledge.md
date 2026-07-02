@@ -624,3 +624,10 @@ docker-compose.yml
 | 数据权限 | `common/common-security/.../util/DataScopeUtils.java` |
 | 操作日志 | `common/common-core/.../annotation/OperationLog.java` |
 | 雪花ID序列化 | `common/common-web/.../serializer/SmartLongSerializer.java` |
+
+---
+
+## 十四、扩展阅读
+
+### 服务熔断与降级
+- [微服务熔断与降级详解](../docs/microservice-circuit-breaker.md) — 深入理解熔断原理、Sentinel/Resilience4j 实践指南

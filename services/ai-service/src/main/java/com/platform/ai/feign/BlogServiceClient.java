@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 /**
  * blog-service Feign 客户端
  */
-@FeignClient(name = "blog-service", contextId = "blogServiceClient")
+@FeignClient(name = "blog-service", contextId = "blogServiceClient", fallbackFactory = BlogServiceClientFallbackFactory.class)
 public interface BlogServiceClient {
 
     /**

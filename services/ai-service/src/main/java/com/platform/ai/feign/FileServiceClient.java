@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * file-service Feign 客户端
  */
-@FeignClient(name = "file-service", contextId = "fileServiceClient")
+@FeignClient(name = "file-service", contextId = "fileServiceClient", fallbackFactory = FileServiceClientFallbackFactory.class)
 public interface FileServiceClient {
 
     /**

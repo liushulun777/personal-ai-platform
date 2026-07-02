@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * MCP Service Feign Client
  */
-@FeignClient(name = "mcp-service")
+@FeignClient(name = "mcp-service", fallbackFactory = McpServiceClientFallbackFactory.class)
 public interface McpServiceClient {
 
     /**
